@@ -1,9 +1,7 @@
 "用于快速启动交互式CIN控制台（带有可选的Websocket服务器）"
 
-# push!(LOAD_PATH, "../src") # 用于直接打开（..上一级目录）
-# push!(LOAD_PATH, "src") # 用于VSCode调试（项目根目录起）
-push!(LOAD_PATH, "../Implements") # 用于从cmd打开
-push!(LOAD_PATH, "Implements") # 用于从VSCode打开
+push!(LOAD_PATH, dirname(@__DIR__)) # 用于从cmd打开
+push!(LOAD_PATH, @__DIR__) # 用于从VSCode打开
 
 #=
 # !📝同名异包问题：直接导入≠间接导入 ! #
@@ -29,6 +27,7 @@ using BabelNARImplements
 @show names(BabelNARImplements)
 using BabelNARImplements.BabelNAR # * ←这里就是「直接导入的包」
 @show names(BabelNAR)
+using BabelNARImplements.Utils: input
 
 # !【2023-11-02 01:30:04】新增的「检验函数」，专门在「导入的包不一致」的时候予以提醒
 if BabelNARImplements.BabelNAR !== BabelNAR
@@ -38,22 +37,21 @@ end
 "================Test for Console================" |> println
 
 while true
-    # type::String = "ONA"
-    global type::String = not_VSCode_running ? inputType("NARS Type(OpenNARS/ONA/Python/Junars): ") : "OpenNARS"
+    if @isdefined FORCED_TYPE
+        type = FORCED_TYPE
+    else
+        global type::String = not_VSCode_running ? input("NARS Type(OpenNARS/ONA/Python/Junars): ") : "OpenNARS"
+    end
     isempty(type) && (type = "OpenNARS")
     # 检验合法性
-    # isvalid(type, NATIVE_CIN_CONFIGS) && break
-    for t in keys(NATIVE_CIN_CONFIGS)
-        @show t == type
-    end
-    @show type NATIVE_CIN_CONFIGS
-    type in keys(NATIVE_CIN_CONFIGS) && break
-    printstyled("Invalid Type!\n"; color=:red)
+    haskey(NATIVE_CIN_CONFIGS, type) && break
+    printstyled("Invalid Type $(type)!\n"; color=:red)
 end
 
 # 自动决定exe路径
 
-EXECUTABLE_ROOT = joinpath(dirname(@__DIR__), "executables") # 获取文件所在目录的上一级目录（包根目录）
+# 获取文件所在目录的上一级目录（包根目录）
+EXECUTABLE_ROOT = joinpath(dirname(dirname(@__DIR__)), "executables")
 JER(name) = joinpath(EXECUTABLE_ROOT, name)
 
 paths::Dict = Dict([
@@ -73,6 +71,14 @@ console = NARSConsole(
     "JuNEI.$type> ",
 )
 
-not_VSCode_running ? launch!(console) : @show console
+not_VSCode_running ?
+launch!(
+    console,
+    ( # 可选的「服务器」
+        (@isdefined IP) && (@isdefined PORT) ?
+        (IP, PORT) : tuple()
+    )...
+) :
+@show console
 
 @info "It is done."

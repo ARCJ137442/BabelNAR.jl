@@ -168,6 +168,9 @@ begin # * 功能
         register_dict::CINConfigDict
     )::CINConfig = register_dict[type]
 
+    "验证合法性"
+    Base.isvalid(type::String, register_dict::CINConfigDict)::Bool = haskey(register_dict, type)
+
     #= # !【2023-11-01 23:42:27】迁移了所有涉及`CINProgram`的函数，解耦合
 
     =#
