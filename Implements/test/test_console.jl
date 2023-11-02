@@ -106,8 +106,8 @@ end)
     local console = main_console(type, path, NATIVE_CIN_CONFIGS) # ! 类型无需固定
 
     # 启动NARS终端
-    not_VSCode_running ? main_launch(console) : # 外部直接运行⇒启动
-    @show console # VSCode（CodeRunner）运行⇒打印
+    not_VSCode_running && @show console # VSCode（CodeRunner）运行⇒打印
+    main_launch(console) # 无论如何都会启动 # * 用于应对「在VSCode启动服务器相对不需要用户输入」的情况
 end
 
 # * 现在可以通过「预先定义main函数」实现可选的「函数替换」

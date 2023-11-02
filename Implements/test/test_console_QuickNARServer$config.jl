@@ -6,6 +6,3 @@ main_address() = (
     host="127.0.0.1",
     port=8765
 )
-
-# 最终引入
-include("test_console_WSServer.jl")
