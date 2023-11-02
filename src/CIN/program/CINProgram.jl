@@ -18,7 +18,7 @@ abstract type CINProgram end
 
 "抽象属性声明：使用外部构造方法"
 function CINProgram(
-    type::String,
+    type::AbstractString,
     out_hook::Union{Function,Nothing}=nothing,
 )
     @debug "Construct: CINProgram with $out_hook, $type"
@@ -41,7 +41,9 @@ end
 has_hook(program::CINProgram)::Bool = !isnothing(program.out_hook)
 
 "（有钩子时）调用钩子（输出信息）"
-use_hook(program::CINProgram, content::String) = has_hook(program) && program.out_hook(content)
+use_hook(program::CINProgram, content::String) = (
+    has_hook(program) && program.out_hook(content)
+)
 
 "设置对外接口：函数钩子"
 function out_hook!(program::CINProgram, newHook::Union{Function,Nothing})::Union{Function,Nothing}
@@ -49,15 +51,15 @@ function out_hook!(program::CINProgram, newHook::Union{Function,Nothing})::Union
 end
 
 "重载：函数第一位，以支持do语法"
-function out_hook!(newHook::Function, program::CINProgram)::Function
-    program.out_hook = newHook
-end
+out_hook!(newHook::Union{Function,Nothing}, program::CINProgram)::Union{Function,Nothing} = (
+    out_hook!(program, newHook)
+)
 
 "（API）程序是否存活（开启）"
-isAlive(::CINProgram)::Bool = @abstractMethod # 抽象属性变为抽象方法
+isAlive(::CINProgram)::Bool = @abstractMethod(isAlive)  # 抽象属性变为抽象方法
 
 "（API）启动程序"
-launch!(::CINProgram)::Nothing() = @abstractMethod
+launch!(::CINProgram)::Nothing() = @abstractMethod(launch!)
 
 "终止程序"
 function terminate!(program::CINProgram)
@@ -71,10 +73,7 @@ end
 获取CIN的「NARS类型」
 - 【2023-11-02 00:11:08】实现方法：下放给各CIN实现
 """
-getNARSType(program::CINProgram) = error("$program: 方法未实现！")
-
-"分派给NARSType做构造方法"
-String(program::CINProgram) = getNARSType(program)
+getNARSType(program::CINProgram) = @abstractMethod(program)
 
 """
 获取CIN的配置

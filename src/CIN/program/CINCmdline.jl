@@ -41,17 +41,17 @@ mutable struct CINCmdline <: CINProgram
         - 因：但new顺序定死，没法灵活
     """
     function CINCmdline(
-        type::String,
+        type::AbstractString,
         config::CINConfig,
-        executable_path::String,
+        executable_path::AbstractString,
         out_hook::Union{Function,Nothing}=nothing,
         cached_inputs::Vector{String}=String[] # Julia动态初始化默认值（每调用就计算一次，而非Python中只计算一次）
     )
         new(
-            type,
+            string(type),
             config,
             out_hook,
-            executable_path,
+            string(executable_path),
             cached_inputs #=空数组=#
         )
     end
@@ -84,7 +84,7 @@ isAlive(cmd::CINCmdline)::Bool =
     process_running(cmd.process) && # 是否在运行
     !process_exited(cmd.process) # 没退出吧
 # 先判断「有无属性」，再判断「是否定义」，最后判断「是否为空」
-# TODO：避免用符号「:process」导致「无法自动重命名」的问题
+# // TODO：避免用符号「:process」导致「无法自动重命名」的问题
 # 进展：没能编写出类似「@soft_isnothing_property cmd.process」自动化（尝试用「hasproperty($object, property_name)」插值「自动转换成Symbol」混乱，报错不通过）
 
 "实现「启动」方法（生成指令，打开具体程序）"
@@ -150,6 +150,7 @@ function async_read_out(cmd::CINCmdline)
             @error e
         end
     end
+    # 循环结束的测试打印
     "loop end!" |> println
 end
 

@@ -24,7 +24,7 @@ Base.copy(jm::CINJuliaModule)::CINJuliaModule = CINJuliaModule(
 Base.similar(jm::CINJuliaModule)::CINJuliaModule = copy(jm)
 
 "（API）获取所持有的模块::Dict{String, Module}"
-modules(::CINJuliaModule)::Dict{String,Module} = @abstractMethod
+modules(::CINJuliaModule)::Dict{String,Module} = @abstractMethod(modules)
 
 """
 检查CIN的模块导入情况

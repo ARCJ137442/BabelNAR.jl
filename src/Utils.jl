@@ -464,18 +464,18 @@ begin
 
     "注册抽象方法：不给访问，报错"
     macro abstractMethod()
-        :(error("Abstract Function!"))
+        :(error("方法未实现！"))
     end
 
-    "有参数：一行函数直接插入报错"
-    macro abstractMethod(sig)
-        :($(esc(sig)) = @abstractMethod)
+    "注册抽象方法：不给访问，报错"
+    macro abstractMethod(name::Symbol)
+        :(error("$name: 方法未实现！"))
     end
 
     "指示「正在开发中」"
     macro WIP(contents...)
         str = "WIP: $(length(contents) == 1 ? contents[1] : contents)"
-        :($str |> println) # 必须在外面先定义str再插进去，否则会被误认为是「Main.contents」
+        :(println($str)) # 必须在外面先定义str再插进去，否则会被误认为是「Main.contents」
     end
 
     # 调用超类方法

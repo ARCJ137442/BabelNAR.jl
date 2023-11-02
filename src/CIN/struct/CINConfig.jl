@@ -6,6 +6,7 @@ export CINConfig, CINConfigDict, @CINConfig_str
 """CINConfig
 「CIN（启动）配置」的实现
 - 配置一个CIN的启动、运作行为，以及其处理函数
+  - 这种加载是**一次性**的：一旦配置被加载，后续对配置的修改将**不再保证**「能及时更新到CIN」
 - 包含对应PyNEI中的「template_语句」常量集
 - 使用「字符串函数」封装模板
     - 因：Julia对「格式化字符串」支持不良
@@ -14,6 +15,9 @@ export CINConfig, CINConfigDict, @CINConfig_str
         - 输入：若无特殊说明，则为对应的一个参数
         - 输出：字符串
 - 亦封装「从『操作字符串』中截取操作」的部分
+
+# ! 现在一个「CIN配置」不再和一个「CIN类型」绑定
+## * 亦即：可以对每个NARS程序使用不同的配置进行管理
 
 TODO: 目前的「配置机制」仍显杂乱，仍需优化重构整理
 """
@@ -28,6 +32,7 @@ struct CINConfig{
     """
     用于构造一个「`CINProgram`实例」的构造函数
     对应PyNEI中的「TYPE_CIN_DICT」，存储Type以达到索引「目标类构造方法」的目的
+    - @method (type::String, config::CINConfig, executable_path::String) -> CINProgram
     """
     program_type::ProgramType
 
@@ -57,56 +62,9 @@ struct CINConfig{
     """
     NAIR_interpreter::NAIRInterpreterF
 
-    #= 语句模板
-
     # !【2023-11-01 20:40:45】至于「语句模板」模块，现不再于BabelNAR中使用
     ## * BabelNAR只负责「NAIR Cmd的输入输出」
     ## * 这些有关Narsese和NAL的问题，交给更高层次的「外部接口」解决
-
-        """
-        指示「某个对象有某个状态」
-        - @method Perception -> String
-        """
-        sense::Function
-
-        """
-        指示「自我有一个可用的（基本）操作」（操作注册）
-        - @method Operation -> String
-        """
-        register::Function
-
-        """
-        指示「自我正在执行某操作」（无意识操作如Babble）
-        - @method Operation -> String
-        """
-        babble::Function
-
-        """
-        指示「自我需要达到某个目标」
-        - @method Goal -> String
-        - 其中以第二参数的形式包含「is_negative」即「负向目标」
-        """
-        put_goal::Function
-
-        """
-        指示「某目标被实现」（奖励）
-        - @method Goal -> String
-        """
-        praise::Function
-
-        """
-        指示「某目标未实现」（惩罚）
-        - @method Goal -> String
-        """
-        punish::Function
-
-        """
-        指示「循环n个周期」
-        - @method Integer -> String
-        """
-        cycle::Function
-
-    =#
 
     """
     基于「命名参数」的内部构造方法

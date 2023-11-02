@@ -1,8 +1,5 @@
 "用于快速启动交互式CIN控制台（带有可选的Websocket服务器）"
 
-push!(LOAD_PATH, dirname(@__DIR__)) # 用于从cmd打开
-push!(LOAD_PATH, @__DIR__) # 用于从VSCode打开
-
 #=
 # !📝同名异包问题：直接导入≠间接导入 ! #
     ! 当在「加载路径」添加了太多「本地值」时，可能会把「依赖中的本地包」和「加载路径上的本地包」一同引入
@@ -20,65 +17,100 @@ push!(LOAD_PATH, @__DIR__) # 用于从VSCode打开
     * 记录时间：【2023-11-02 01:36:43】
 =#
 
-not_VSCode_running::Bool = "test" ⊆ pwd()
+# 条件引入
+@isdefined(BabelNARImplements) || include(raw"test_console$import.jl")
 
-# ! 避免「同名异包问题」最好的方式：只从「间接导入的包」里导入「直接导入的包」
-using BabelNARImplements
-@show names(BabelNARImplements)
-using BabelNARImplements.BabelNAR # * ←这里就是「直接导入的包」
-@show names(BabelNAR)
-using BabelNARImplements.Utils: input
+"""
+用于获取用户输入的「NARS类型」
+- 逻辑：不断判断
+"""
+function get_valid_NARS_type_from_input(
+    valid_types;
+    default_type::String,
+    input_prompt::String)::String
 
-# !【2023-11-02 01:30:04】新增的「检验函数」，专门在「导入的包不一致」的时候予以提醒
-if BabelNARImplements.BabelNAR !== BabelNAR
-    error("报警：俩包不一致！")
-end
+    local type::String
 
-"================Test for Console================" |> println
-
-while true
-    if @isdefined FORCED_TYPE
-        type = FORCED_TYPE
-    else
-        global type::String = not_VSCode_running ? input("NARS Type(OpenNARS/ONA/Python/Junars): ") : "OpenNARS"
+    while true
+        type = input(input_prompt)
+        # 输入后空值合并
+        isempty(type) && (type = default_type)
+        # * 合法⇒退出⇒返回
+        type in valid_types && break
+        # * 非法⇒警告⇒重试
+        printstyled("Invalid Type $(type)!\n"; color=:red)
     end
-    isempty(type) && (type = "OpenNARS")
-    # 检验合法性
-    haskey(NATIVE_CIN_CONFIGS, type) && break
-    printstyled("Invalid Type $(type)!\n"; color=:red)
+
+    # 返回合法的类型
+    return type
 end
 
-# 自动决定exe路径
+begin # * 可执行文件路径
+    # 获取文件所在目录的上一级目录（包根目录）
+    EXECUTABLE_ROOT = joinpath(dirname(dirname(@__DIR__)), "executables")
+    JER(name) = joinpath(EXECUTABLE_ROOT, name)
 
-# 获取文件所在目录的上一级目录（包根目录）
-EXECUTABLE_ROOT = joinpath(dirname(dirname(@__DIR__)), "executables")
-JER(name) = joinpath(EXECUTABLE_ROOT, name)
+    paths::Dict = Dict([
+        "OpenNARS" => "opennars.jar" |> JER
+        "ONA" => "NAR.exe" |> JER
+        "Python" => "main.exe" |> JER
+        "Junars" => raw"..\..\..\..\OpenJunars-main"
+    ])
+end
 
-paths::Dict = Dict([
-    "OpenNARS" => "opennars.jar" |> JER
-    "ONA" => "NAR.exe" |> JER
-    "Python" => "main.exe" |> JER
-    "Junars" => raw"..\..\..\..\OpenJunars-main"
-])
 
-path = paths[type]
+# * 主函数 * #
+# * 获取NARS类型
+@isdefined(main_type) || (main_type(default_type) = begin
+    global not_VSCode_running
 
-# 启动终端
-console = NARSConsole(
+    @isdefined(FORCED_TYPE) ? FORCED_TYPE :
+    not_VSCode_running ? get_valid_NARS_type_from_input(
+        keys(NATIVE_CIN_CONFIGS);
+        default_type,
+        input_prompt="NARS Type [OpenNARS|ONA|Python|Junars] ($default_type): "
+    ) :
+    "OpenNARS"
+end)
+# * 根据类型获取可执行文件路径
+@isdefined(main_path) || (main_path(type) = paths[type])
+# * 生成NARS终端
+@isdefined(main_console) || (main_console(type, path, CIN_configs) = NARSConsole(
     type,
-    NATIVE_CIN_CONFIGS[type],
-    path,
-    "JuNEI.$type> ",
-)
-
-not_VSCode_running ?
-launch!(
+    CIN_configs[type],
+    path;
+    input_prompt="BabelNAR.$type> "
+))
+# * 启动
+@isdefined(main_launch) || (main_launch(console) = launch!(
     console,
     ( # 可选的「服务器」
         (@isdefined IP) && (@isdefined PORT) ?
         (IP, PORT) : tuple()
     )...
-) :
-@show console
+))
+# * 主函数
+@isdefined(main) || function main()
+
+    "================Test for Console================" |> println
+
+    global not_VSCode_running
+
+    # 获取NARS类型
+    local type::String = main_type("OpenNARS")
+
+    # 根据类型获取可执行文件路径
+    local path::String = main_path(type)
+
+    # 生成NARS终端
+    local console = main_console(type, path, NATIVE_CIN_CONFIGS) # ! 类型无需固定
+
+    # 启动NARS终端
+    not_VSCode_running ? main_launch(console) : # 外部直接运行⇒启动
+    @show console # VSCode（CodeRunner）运行⇒打印
+end
+
+# * 现在可以通过「预先定义main函数」实现可选的「函数替换」
+main()
 
 @info "It is done."

@@ -9,7 +9,7 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
 [[deps.BabelNAR]]
 deps = ["Reexport"]
-git-tree-sha1 = "fd95c2110e3b135f6201f1af7a3d5598960d3e22"
+git-tree-sha1 = "7391a01ba11c7bc4584547414014840a3e1e605c"
 repo-rev = "master"
 repo-url = "H:\\A137442\\Develop\\AGI\\NARS\\_Project\\BabelNAR"
 uuid = "b7421120-50f0-43fc-8b2b-7721c3d5cbfc"
