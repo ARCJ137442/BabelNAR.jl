@@ -20,7 +20,7 @@ using BabelNAR
 
 # * 「具体CIN实现」交给下面的jl：抽象接口与具体注册分离
 ## * 原生CIN
-include("CIN/OpenJunars.jl")
+include("CIN/CINOpenJunars.jl")
 
 
 # * 「具体CIN配置」交给下面的jl：抽象接口与具体注册分离

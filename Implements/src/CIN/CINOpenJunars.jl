@@ -1,31 +1,33 @@
 # ! be included in: BabelNARImplements.jl @ module BabelNARImplements
 
+# 导入
+import BabelNAR: isAlive, launch!, terminate!, getNARSType
+
 # 导出
-export CINJunars, TYPE_JUNARS
+export CINOpenJunars, TYPE_OPEN_JUNARS
 # export cached_inputs, cache_input!, num_cached_input, cache_input!, clear_cached_input!, flush_cached_input! # 母文件已经导入
 export show_tracks
-
 """
 注册项：作为一个Julia模块，直接对接(Open)Junars
 - ！部分对接代码来自OpenJunars源码
 - 参考：OpenJunars主页 <https://github.com/AIxer/OpenJunars>
 """
 
-const MODULE_NAME_Junars::String = "Junars" # Junars主模块
+const MODULE_NAME_OpenJunars::String = "Junars" # OpenJunars主模块
 const MODULE_NAME_DataStructures::String = "DataStructures" # 启动NaCore所需的数据结构
 
-"Junars默认需导入的包名"
+"OpenJunars默认需导入的包名"
 const JUNARS_DEFAULT_MODULES::Vector{String} = [
-    MODULE_NAME_Junars
+    MODULE_NAME_OpenJunars
     MODULE_NAME_DataStructures
 ]
 
-const TYPE_JUNARS::String = "Junars"
+const TYPE_OPEN_JUNARS::String = "OpenJunars"
 
-"""Junars的JuNEI接口
-- 直接使用Junars代码访问
+"""OpenJunars的JuNEI接口
+- 直接使用OpenJunars代码访问
 """
-mutable struct CINJunars <: CINJuliaModule
+mutable struct CINOpenJunars <: CINJuliaModule
 
     # 继承CINProgram #
 
@@ -54,7 +56,7 @@ mutable struct CINJunars <: CINJuliaModule
     cached_inputs::Vector{Union{String,Integer}}
 
     """
-    存储导入的Junars模块
+    存储导入的OpenJunars模块
     - 格式：「模块名 => 模块对象」
     - 一般持有的模块
         - `Junars`: 核心支持
@@ -67,7 +69,7 @@ mutable struct CINJunars <: CINJuliaModule
     oracle # ::NaCore # 因「动态导入」机制限制，无法在编译时设定类型
 
     "宽松的构造方法（但new顺序定死，没法灵活）"
-    function CINJunars(
+    function CINOpenJunars(
         config::CINConfig,
         path_Junars::String,
         out_hook::Union{Function,Nothing}=nothing,
@@ -75,7 +77,7 @@ mutable struct CINJunars <: CINJuliaModule
         cached_inputs::Vector{String}=String[] # Julia动态初始化默认值（每调用就计算一次，而非Python中只计算一次）
     )
         new(
-            TYPE_JUNARS,
+            TYPE_OPEN_JUNARS,
             config,
             out_hook,
             path_Junars,
@@ -86,7 +88,7 @@ mutable struct CINJunars <: CINJuliaModule
     end
 
     "来自Console.jl的统一调用方法"
-    function CINJunars(
+    function CINOpenJunars(
         ::String, # 不使用
         config::CINConfig,
         path_Junars::String, # 与其它类型CIN一致
@@ -94,7 +96,7 @@ mutable struct CINJunars <: CINJuliaModule
         module_names::Vector{String}=JUNARS_DEFAULT_MODULES,
         cached_inputs::Vector{String}=String[] # Julia动态初始化默认值（每调用就计算一次，而非Python中只计算一次）
     )
-        CINJunars(
+        CINOpenJunars(
             config,
             path_Junars,
             out_hook,
@@ -105,8 +107,14 @@ mutable struct CINJunars <: CINJuliaModule
     end
 end
 
+"获取NARS类型"
+getNARSType(cj::CINOpenJunars)::String = cj.type
+
+"获取配置"
+getConfig(cj::CINOpenJunars)::CINConfig = cj.config
+
 "实现：复制一份副本（所有变量），但不启动"
-Base.copy(cj::CINJunars)::CINJunars = CINJunars(
+Base.copy(cj::CINOpenJunars)::CINOpenJunars = CINOpenJunars(
     getNARSType(cj),
     getConfig(cj),
     cj.path_Junars,
@@ -117,16 +125,16 @@ Base.copy(cj::CINJunars)::CINJunars = CINJunars(
     cj.cached_inputs |> copy, # 可变数组需要复制
 )
 "similar类似copy"
-Base.similar(cj::CINJunars)::CINJunars = copy(cj)
+Base.similar(cj::CINOpenJunars)::CINOpenJunars = copy(cj)
 
 "（实现）实际上是构建一个新字典"
-modules(cj::CINJunars) = Dict(
-    MODULE_NAME_Junars => cj.module_Junars,
+modules(cj::CINOpenJunars) = Dict(
+    MODULE_NAME_OpenJunars => cj.module_Junars,
     MODULE_NAME_DataStructures => cj.module_DataStructures
 )
 
 "（重载）只需检测Junars与DataStructures两个模块就行了"
-function check_modules(cj::CINJunars)::Bool
+function check_modules(cj::CINOpenJunars)::Bool
     return !@soft_isnothing_property(cj.module_Junars) &&
            !@soft_isnothing_property(cj.module_DataStructures)
 end
@@ -134,7 +142,7 @@ end
 # 📝Julia对引入「公共属性」并不看好
 
 "存活依据：Junars已载入 && 有推理器NaCore"
-isAlive(cj::CINJunars)::Bool = check_modules(cj) && !@soft_isnothing_property(cj.oracle)
+isAlive(cj::CINOpenJunars)::Bool = check_modules(cj) && !@soft_isnothing_property(cj.oracle)
 # 先判断「有无属性」，再判断「是否定义」，最后判断「是否为空」
 
 """
@@ -152,7 +160,7 @@ isAlive(cj::CINJunars)::Bool = check_modules(cj) && !@soft_isnothing_property(cj
     - 中文：https://docs.juliacn.com/latest/manual/methods
     - 英文：https://docs.julialang.org/en/v1/manual/methods
 """
-function gen_NARS_core(cj::CINJunars) # NaCore
+function gen_NARS_core(cj::CINOpenJunars) # NaCore
 
     # 检查模块导入情况
     !check_modules(cj) && return
@@ -184,7 +192,7 @@ end
 - （可选）除定义时记录的路径外，多导入几个额外路径
     - 📌源自「VSCode调试与直接运行的路径差异」
 """
-function launch!(cj::CINJunars, extra_paths...)
+function launch!(cj::CINOpenJunars, extra_paths...)
     # 📝在eval代码块中使用「$局部变量名」把局部变量带入eval
     # 动态异步启动
     @async begin
@@ -197,7 +205,7 @@ function launch!(cj::CINJunars, extra_paths...)
 
             # 置入指定模块
             cj.module_DataStructures = modules[MODULE_NAME_DataStructures]
-            cj.module_Junars = modules[MODULE_NAME_Junars]
+            cj.module_Junars = modules[MODULE_NAME_OpenJunars]
 
             # 生成推理器
             cj.oracle = gen_NARS_core(cj)
@@ -215,8 +223,8 @@ end
 
 # 📌在使用super调用超类实现后，还能再分派回本类的实现中（见clear_cached_input!）
 "继承：终止程序（暂未找到比较好的方案）"
-function terminate!(cj::CINJunars)
-    @debug "CINJunars terminate! $cj"
+function terminate!(cj::CINOpenJunars)
+    @debug "CINOpenJunars terminate! $cj"
     finalize(cj.oracle)
     cj.oracle = nothing # 置空
     @invoke terminate!(cj::CINProgram) # 构造先父再子，析构先子再父
@@ -225,11 +233,15 @@ end
 """
 重载：直接添加命令（不检测「是否启动」）
 - 【20230718 13:19:57】📌不能使用union{String,Integer}
-    - 会产生歧义「MethodError: put!(::CINJunars, ::String) is ambiguous.」
+    - 会产生歧义「MethodError: put!(::CINOpenJunars, ::String) is ambiguous.」
 """
-function Base.put!(cj::CINJunars, input::String)
+function Base.put!(cj::CINOpenJunars, input::String)
     # 过滤空值
     isempty(input) && return
+    # 兼容「`:c X`⇒循环X周期」的情况：直接去掉「`:c `前缀」
+    if input[1:3] == ":c "
+        input = input[4:end]
+    end
     # 若可以被转换为整数：执行cycle
     n::Union{Int,Nothing} = tryparse(Int, input)
     !isnothing(n) && return cycle!(cj, n)
@@ -243,7 +255,7 @@ function Base.put!(cj::CINJunars, input::String)
 end
 
 "（慎用）【独有】直接写入NaCore（迁移自OpenJunars）"
-function add_one!(cj::CINJunars, input::String)
+function add_one!(cj::CINOpenJunars, input::String)
     NARS_core = cj.oracle
     Junars::Module = cj.module_Junars
 
@@ -264,6 +276,9 @@ function add_one!(cj::CINJunars, input::String)
         NARS_core.serials[] += 1
     catch e
         @error "add_one! ==> $e"
+        Base.printstyled("ERROR: "; color=:red, bold=true)
+        Base.showerror(stdout, e)
+        Base.show_backtrace(stdout, Base.catch_backtrace())
     end
 end
 
@@ -285,7 +300,7 @@ end
 📝OpenJunars中Answer的来源：`cycle!/spike/reason/localmatch/trysolution!`
 - 目前尚无法进行捕捉
 """
-function cycle_one!(cj::CINJunars)
+function cycle_one!(cj::CINOpenJunars)
     # 引入模块
     Junars::Module = cj.module_Junars
 
@@ -336,7 +351,7 @@ function cycle_one!(cj::CINJunars)
 end
 
 "内部方法：推理循环步进（没有缓存）"
-function cycle_interfaced!(cj::CINJunars, steps::Integer)
+function cycle_interfaced!(cj::CINOpenJunars, steps::Integer)
     for _ in 1:steps
         # Junars.cycle!(cj.oracle) # 同名函数可能冲突？
         try
@@ -349,7 +364,7 @@ function cycle_interfaced!(cj::CINJunars, steps::Integer)
 end
 
 "实现方法：推理循环步进"
-function cycle!(cj::CINJunars, steps::Integer)
+function cycle!(cj::CINOpenJunars, steps::Integer)
     if isAlive(cj)
         flush_cached_input!(cj)
         cycle_interfaced!(cj, steps)
@@ -359,7 +374,7 @@ function cycle!(cj::CINJunars, steps::Integer)
 end
 
 "打印跟踪（迁移自OpenJunars）"
-function show_tracks(cj::CINJunars)
+function show_tracks(cj::CINOpenJunars)
     # 获取概念集
     concepts = cj.oracle.mem
     Junars = cj.module_Junars
@@ -375,19 +390,19 @@ function show_tracks(cj::CINJunars)
 end
 
 "【独有】缓存的命令"
-cached_inputs(cj::CINJunars)::Vector{String} = cj.cached_inputs
+cached_inputs(cj::CINOpenJunars)::Vector{String} = cj.cached_inputs
 
 "缓存的输入数量" # 注：使用前置宏无法在大纲中看到方法定义
-num_cached_input(cj::CINJunars)::Integer = length(cj.cached_inputs)
+num_cached_input(cj::CINOpenJunars)::Integer = length(cj.cached_inputs)
 
 "将输入缓存（不立即写入CIN）"
-cache_input!(cj::CINJunars, input::Union{String,Integer}) = push!(cj.cached_inputs, input)
+cache_input!(cj::CINOpenJunars, input::Union{String,Integer}) = push!(cj.cached_inputs, input)
 
 "清除缓存的输入"
-clear_cached_input!(cj::CINJunars) = empty!(cj.cached_inputs)
+clear_cached_input!(cj::CINOpenJunars) = empty!(cj.cached_inputs)
 
 "（调用者在异步）将所有缓存的输入全部写入CIN，并清除缓存"
-function flush_cached_input!(cj::CINJunars)
+function flush_cached_input!(cj::CINOpenJunars)
     for cached_input::Union{String,Integer} ∈ cj.cached_inputs
         if cached_input isa Integer # 数字⇒循环一定步骤
             cycle_interfaced!(cj, cached_input)

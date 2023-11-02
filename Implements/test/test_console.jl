@@ -54,7 +54,7 @@ begin # * 可执行文件路径
         "OpenNARS" => "opennars.jar" |> JER
         "ONA" => "NAR.exe" |> JER
         "Python" => "main.exe" |> JER
-        "Junars" => raw"..\..\..\..\OpenJunars-main"
+        "OpenJunars" => raw"..\..\..\..\OpenJunars-main"
     ])
 end
 
@@ -68,7 +68,7 @@ end
     not_VSCode_running ? get_valid_NARS_type_from_input(
         keys(NATIVE_CIN_CONFIGS);
         default_type,
-        input_prompt="NARS Type [OpenNARS|ONA|Python|Junars] ($default_type): "
+        input_prompt="NARS Type [$(join(keys(NATIVE_CIN_CONFIGS)|>collect, '|'))] ($default_type): "
     ) :
     "OpenNARS"
 end)

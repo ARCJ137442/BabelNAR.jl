@@ -19,10 +19,12 @@ function launchWSServer(consoleWS::NARSConsoleWithServer, host::String, port::In
         push!(consoleWS.connections, ws)
 
         listen(ws, :message) do message
-            "转换后的字符串"
-            local input::String = main_received_convert(consoleWS, message)
+            "转换后的字符串" # ! 可能「一输入多输出」
+            local inputs::Vector{String} = main_received_convert(consoleWS, message)
             # 处理：通过「转译函数」后放入CIN，视作为「CIN自身的输入」 # ! 只有非空字符串才会输入进CIN
-            isempty(input) || put!(consoleWS.console.program, input)
+            isempty(inputs) || for input in inputs
+                put!(consoleWS.console.program, input)
+            end
         end
 
         listen(ws, :close) do reason
@@ -83,8 +85,7 @@ end
 end
 
 # * 转换服务器收到的消息
-@isdefined(main_received_convert) || (main_received_convert(consoleWS::NARSConsoleWithServer, message::String) = (
-    consoleWS, # ! 用于识别区分
+@isdefined(main_received_convert) || (main_received_convert(::NARSConsoleWithServer, message::String) = (
     message
 )) # ! 默认为恒等函数，后续用于NAVM转译
 
@@ -95,7 +96,8 @@ main_console(type, path, CIN_configs)::NARSConsoleWithServer = NARSConsoleWithSe
         type,
         CIN_configs[type],
         path;
-        input_prompt="BabelNAR.$type> "
+        input_prompt="BabelNAR.$type> ",
+        input_interpreter=main_received_convert # ! 与「来源网络」的一致
     );
     # 然后配置可选参数 #
     # 服务器

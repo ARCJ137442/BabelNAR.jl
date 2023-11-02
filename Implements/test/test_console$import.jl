@@ -8,7 +8,16 @@ using BabelNARImplements
 @debug names(BabelNARImplements)
 using BabelNARImplements.BabelNAR # * ←这里就是「直接导入的包」
 @debug names(BabelNAR)
-using BabelNARImplements.Utils: input
+using BabelNARImplements.Utils: input, _INTERNAL_MODULE_SEARCH_DICT # ! ←这个用于注入Junars
+
+# 引入OpenJunars # ! 但这是本地目录，所以在别的地方需要稍加修改
+push!(LOAD_PATH, "../../../OpenJunars-main")
+import DataStructures
+import Junars
+@debug names(Junars) names(DataStructures)
+# 注入
+_INTERNAL_MODULE_SEARCH_DICT[:Junars] = Junars
+_INTERNAL_MODULE_SEARCH_DICT[:DataStructures] = DataStructures
 
 # !【2023-11-02 01:30:04】新增的「检验函数」，专门在「导入的包不一致」的时候予以提醒
 if BabelNARImplements.BabelNAR !== BabelNAR

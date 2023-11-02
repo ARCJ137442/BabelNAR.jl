@@ -204,10 +204,10 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             # 循环周期
             (n::Integer) -> "" # NARS-Python不启用 =#
     ),
-    TYPE_JUNARS => CINConfig(; #= 因此依赖于OpenJunars.jl =#
+    TYPE_OPEN_JUNARS => CINConfig(; #= 因此依赖于OpenJunars.jl =#
 
         # 使用特制Junars类控制
-        program_type=CINJunars,
+        program_type=CINOpenJunars,
 
         # 程序启动命令（不使用）
         launch_arg_generator=(executable_path::String) -> nothing,

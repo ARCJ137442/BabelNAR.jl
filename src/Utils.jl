@@ -469,7 +469,8 @@ begin
 
     "注册抽象方法：不给访问，报错"
     macro abstractMethod(name::Symbol)
-        :(error("$name: 方法未实现！"))
+        local nameStr::String = string(name)
+        :(error("$($nameStr): 方法未实现！"))
     end
 
     "指示「正在开发中」"
@@ -593,6 +594,7 @@ begin
 
     export input, @input_str
     export import_external_julia_package
+    export _INTERNAL_MODULE_SEARCH_DICT
 
     "复现Python的「input」函数"
     function input(prompt::String="")::String
@@ -610,6 +612,12 @@ begin
     end
 
     """
+    内置的「模块搜索字典」
+    - @eval无法跨越模块作用域
+    """
+    _INTERNAL_MODULE_SEARCH_DICT::Dict{Symbol,Module} = Dict{Symbol,Module}()
+
+    """
         import_external_julia_package(package_paths::Union{AbstractArray, Tuple}, module_names::Union{AbstractArray, Tuple})::Dict{String,Module}
         
     导入路径&导入Julia包
@@ -619,7 +627,8 @@ begin
     """
     function import_external_julia_package(
         package_paths::Union{AbstractArray,Tuple},
-        module_names::Union{AbstractArray,Tuple}
+        module_names::Union{AbstractArray,Tuple};
+        try_import_existed_module::Bool=true
     )::Dict{String,Module}
         # 添加所有路径
         push!(LOAD_PATH, package_paths...)
@@ -630,12 +639,38 @@ begin
 
         result::Dict{String,Module} = Dict{String,Module}()
         for package_name in module_names
+            "返回の模组"
             m::Union{Module,Nothing} = nothing
+            package_symbol::Symbol = Symbol(package_name)
             try # 每次都尝试一下（可能有「模块没找到」错误）
-                @eval import $(Symbol(package_name))
-                m = @eval $(Symbol(package_name))
-                @debug "Imported $m module!!! XD"
+
+                # 尝试使用全局已存在的包代替
+                if try_import_existed_module
+                    # 尝试直接在字典中搜索
+                    if haskey(_INTERNAL_MODULE_SEARCH_DICT, package_symbol)
+                        m = _INTERNAL_MODULE_SEARCH_DICT[package_symbol]
+                    else # 否则尝试在（模块）作用域搜索
+                        @eval begin
+                            # 打开全局变量
+                            global $package_symbol
+                            # 有定义&是模块⇒设置模块
+                            if (@isdefined $package_symbol) && typeof($package_symbol) === Module
+                                m = $package_symbol
+                            end
+                        end
+                    end
+                end
+
+                # 还没找到⇒尝试手动导入 # ! 可能有「母模块安装不完整」（强行要求加入依赖）错误
+                if isnothing(m)
+                    @eval import $package_symbol
+                    m = @eval $package_symbol
+                    @debug "Imported $m module!!! XD"
+                end
+
+                # 放入返回值
                 result[package_name] = m # 将模块放入返回值
+
             catch e
                 @error "import_external_julia_package ==> $e"
             end
