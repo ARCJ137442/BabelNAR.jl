@@ -14,8 +14,14 @@ using ...Utils # ! 引入在「主包外的同级」，故需要三个点（两�
 
 # * CIN通用类型
 
+## * 统一的CIN类型
+include("struct/CINType.jl")
+
 ## * 通用的CIN配置
 include("struct/CINConfig.jl")
+
+## * 通用的NARS输出类型
+include("struct/NARSOutputType.jl")
 
 
 # * 通用CIN程序定义

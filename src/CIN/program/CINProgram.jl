@@ -73,17 +73,17 @@ end
 获取CIN的「NARS类型」
 - 【2023-11-02 00:11:08】实现方法：下放给各CIN实现
 """
-getNARSType(program::CINProgram) = @abstractMethod(program)
+getNARSType(program::CINProgram)::CINType = @abstractMethod(program)
 
 """
 获取CIN的配置
 - 【20230723 14:00:47】目的：解耦——通过「函数声明」摆脱CIN本身对Register的依赖
 - 【2023-11-02 00:11:08】实现方法：下放给各CIN实现
 """
-getConfig(program::CINProgram) = error("$program: 方法未实现！")
+getConfig(program::CINProgram)::CINConfig = @abstractMethod(program)
 
 "分派给Program做构造方法"
-CINConfig(program::CINProgram) = getConfig(program)
+CINConfig(program::CINProgram)::CINConfig = getConfig(program)
 
 "（API）添加输入（NAL语句字符串）：对应PyNEI的「write_line」"
 Base.put!(::CINProgram, ::String) = @abstractMethod

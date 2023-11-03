@@ -22,7 +22,8 @@ const JUNARS_DEFAULT_MODULES::Vector{String} = [
     MODULE_NAME_DataStructures
 ]
 
-const TYPE_OPEN_JUNARS::String = "OpenJunars"
+"CINOpenJunars的「NARS类型」"
+const TYPE_OPEN_JUNARS::CINType = :OpenJunars
 
 """OpenJunars的JuNEI接口
 - 直接使用OpenJunars代码访问
@@ -32,7 +33,7 @@ mutable struct CINOpenJunars <: CINJuliaModule
     # 继承CINProgram #
 
     "存储对应CIN类型"
-    type::String
+    type::CINType
 
     "存储对应CIN配置"
     config::CINConfig
@@ -108,7 +109,7 @@ mutable struct CINOpenJunars <: CINJuliaModule
 end
 
 "获取NARS类型"
-getNARSType(cj::CINOpenJunars)::String = cj.type
+getNARSType(cj::CINOpenJunars)::CINType = cj.type
 
 "获取配置"
 getConfig(cj::CINOpenJunars)::CINConfig = cj.config
@@ -276,9 +277,7 @@ function add_one!(cj::CINOpenJunars, input::String)
         NARS_core.serials[] += 1
     catch e
         @error "add_one! ==> $e"
-        Base.printstyled("ERROR: "; color=:red, bold=true)
-        Base.showerror(stdout, e)
-        Base.show_backtrace(stdout, Base.catch_backtrace())
+        print_error(e)
     end
 end
 

@@ -29,6 +29,7 @@ mutable struct NARSConsole{InputInterpreterF<:Function}
 
     """
     从「前端输入」到「后端计算」的「转译函数」
+    - @method (input::String) -> String
     - 用于各类「输入预处理」
       - 如「NAVM指令转写」
       - # ! 不会影响CIN的读写和输出
@@ -39,7 +40,7 @@ mutable struct NARSConsole{InputInterpreterF<:Function}
     launched::Bool # 用于过滤「无关信息」
 
     function NARSConsole(
-        type::String,
+        type::CINType,
         config::CINConfig,
         executable_path::String;
         # 可选参数

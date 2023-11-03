@@ -26,15 +26,16 @@
 """
 function get_valid_NARS_type_from_input(
     valid_types;
-    default_type::String,
-    input_prompt::String)::String
+    default_type::CINType,
+    input_prompt::String)::CINType
 
-    local type::String
+    local inp::String, type::CINType
 
     while true
-        type = input(input_prompt)
+        inp = input(input_prompt)
         # 输入后空值合并
-        isempty(type) && (type = default_type)
+        type = isempty(inp) ? (default_type) :
+               CINType(inp)
         # * 合法⇒退出⇒返回
         type in valid_types && break
         # * 非法⇒警告⇒重试
@@ -51,17 +52,17 @@ begin # * 可执行文件路径
     JER(name) = joinpath(EXECUTABLE_ROOT, name)
 
     paths::Dict = Dict([
-        "OpenNARS" => "opennars.jar" |> JER
-        "ONA" => "NAR.exe" |> JER
-        "Python" => "main.exe" |> JER
-        "OpenJunars" => raw"..\..\..\..\OpenJunars-main"
+        TYPE_OPENNARS => "opennars.jar" |> JER
+        TYPE_ONA => "NAR.exe" |> JER
+        TYPE_NARS_PYTHON => "main.exe" |> JER
+        TYPE_OPEN_JUNARS => raw"..\..\..\..\OpenJunars-main"
     ])
 end
 
 
 # * 主函数 * #
 # * 获取NARS类型
-@isdefined(main_type) || (main_type(default_type) = begin
+@isdefined(main_type) || (main_type(default_type::CINType) = begin
     global not_VSCode_running
 
     @isdefined(FORCED_TYPE) ? FORCED_TYPE :
@@ -70,12 +71,12 @@ end
         default_type,
         input_prompt="NARS Type [$(join(keys(NATIVE_CIN_CONFIGS)|>collect, '|'))] ($default_type): "
     ) :
-    "OpenNARS"
+    TYPE_OPENNARS
 end)
 # * 根据类型获取可执行文件路径
-@isdefined(main_path) || (main_path(type) = paths[type])
+@isdefined(main_path) || (main_path(type::CINType) = paths[type])
 # * 生成NARS终端
-@isdefined(main_console) || (main_console(type, path, CIN_configs) = NARSConsole(
+@isdefined(main_console) || (main_console(type::CINType, path, CIN_configs) = NARSConsole(
     type,
     CIN_configs[type],
     path;
@@ -97,7 +98,7 @@ end)
     global not_VSCode_running
 
     # 获取NARS类型
-    local type::String = main_type("OpenNARS")
+    local type::CINType = main_type(TYPE_OPENNARS)
 
     # 根据类型获取可执行文件路径
     local path::String = main_path(type)

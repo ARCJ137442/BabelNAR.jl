@@ -15,9 +15,10 @@ push!(LOAD_PATH, "../../../OpenJunars-main")
 import DataStructures
 import Junars
 @debug names(Junars) names(DataStructures)
-# 注入
-_INTERNAL_MODULE_SEARCH_DICT[:Junars] = Junars
-_INTERNAL_MODULE_SEARCH_DICT[:DataStructures] = DataStructures
+# 注入 # * Symbol(模块)=模块名（符号）
+for m in [Junars, DataStructures]
+    _INTERNAL_MODULE_SEARCH_DICT[Symbol(m)] = m
+end
 
 # !【2023-11-02 01:30:04】新增的「检验函数」，专门在「导入的包不一致」的时候予以提醒
 if BabelNARImplements.BabelNAR !== BabelNAR

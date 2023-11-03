@@ -24,7 +24,7 @@ TODO: 目前的「配置机制」仍显杂乱，仍需优化重构整理
 struct CINConfig{
     ProgramType<:Type,
     LaunchArgGeneratorF<:Function, #启动参数生成函数
-    OperationCatchF<:Function, # 捕捉操作的函数
+    OutputInterpretF<:Function, # 捕捉操作的函数
     NAIRInterpreterF<:Function} # 指令转换的函数
 
     #= 程序特性 =#
@@ -32,7 +32,7 @@ struct CINConfig{
     """
     用于构造一个「`CINProgram`实例」的构造函数
     对应PyNEI中的「TYPE_CIN_DICT」，存储Type以达到索引「目标类构造方法」的目的
-    - @method (type::String, config::CINConfig, executable_path::String) -> CINProgram
+    - @method (type::CINType, config::CINConfig, executable_path::String) -> CINProgram
     """
     program_type::ProgramType
 
@@ -46,11 +46,11 @@ struct CINConfig{
     launch_arg_generator::LaunchArgGeneratorF
 
     """
-    对应PyNEI中被各个类实现的「catch_operation」函数（现需要直接从字符串中获得操作）
-    - @method line::String -> Union{NARSOperation, Nothing}
-      - 包含「空操作」即nothing
+    对应PyNEI中被各个类实现的「catch_operation」函数（现需要直接从字符串中转译输出）
+    - (line::String) -> Vector{@NamedTuple{output_type::String,content::String}}
+      - # !【2023-11-03 23:20:05】现在函数更名，并且不再只是「捕捉操作」
     """
-    operation_catch::OperationCatchF
+    output_interpret::OutputInterpretF
 
     """
     用于把NAIR命令转换为直接输入到CIN的命令
@@ -74,23 +74,23 @@ struct CINConfig{
         # ! 以下全为可变参数
         program_type::ProgramType,
         launch_arg_generator::LaunchArgGeneratorF,
-        operation_catch::OperationCatchF,
+        output_interpret::OutputInterpretF,
         NAIR_interpreter::NAIRInterpreterF
     ) where {
         #= 类型参数 =#
         ProgramType<:Type,
         LaunchArgGeneratorF<:Function,
-        OperationCatchF<:Function,
+        OutputInterpretF<:Function,
         NAIRInterpreterF<:Function}
         return new{
             ProgramType,
             LaunchArgGeneratorF,
-            OperationCatchF,
+            OutputInterpretF,
             NAIRInterpreterF
         }(
             program_type,
             launch_arg_generator,
-            operation_catch,
+            output_interpret,
             NAIR_interpreter
         )
     end
@@ -109,25 +109,14 @@ CINConfig(args, kwargs) = CINConfig(args...; kwargs...)
 
 
 "CIN配置字典的类型：NARS类型 => CIN配置"
-const CINConfigDict::Type = Dict{String,CINConfig}
+const CINConfigDict::Type = Dict{CINType,CINConfig}
 
-#= 注：不把以下代码放到templates.jl中，因为：
-- Program要用到NARSType
-- 以下代码要等Register注册
-- Register要等Program类声明
-因此不能放在一个文件中
-=#
 begin # * 功能
 
-    "Type→Register（需要字典）"
-    Base.convert(
-        ::Core.Type{CINConfig},
-        type::String,
-        register_dict::CINConfigDict
-    )::CINConfig = register_dict[type]
+    # !【2023-11-03 23:54:13】删除了所有扩展的`Base.convert`方法，精简代码
 
     "验证合法性"
-    Base.isvalid(type::String, register_dict::CINConfigDict)::Bool = haskey(register_dict, type)
+    Base.isvalid(type::CINType, register_dict::CINConfigDict)::Bool = haskey(register_dict, type)
 
     #= # !【2023-11-01 23:42:27】迁移了所有涉及`CINProgram`的函数，解耦合
 

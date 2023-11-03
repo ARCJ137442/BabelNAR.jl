@@ -595,6 +595,16 @@ begin
     export input, @input_str
     export import_external_julia_package
     export _INTERNAL_MODULE_SEARCH_DICT
+    export print_error
+
+    """
+    像Julia REPL那样，带堆栈详细报错
+    """
+    function print_error(e::Exception, stdout::IO=Base.stdout)
+        Base.printstyled("ERROR: "; color=:red, bold=true)
+        Base.showerror(stdout, e)
+        Base.show_backtrace(stdout, Base.catch_backtrace())
+    end
 
     "复现Python的「input」函数"
     function input(prompt::String="")::String

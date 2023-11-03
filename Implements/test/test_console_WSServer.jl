@@ -89,50 +89,62 @@ end
     message
 )) # ! 默认为恒等函数，后续用于NAVM转译
 
-"覆盖：生成「带Websocket服务器」的NARS终端"
-main_console(type, path, CIN_configs)::NARSConsoleWithServer = NARSConsoleWithServer(
-    # 先内置一个终端 #
-    NARSConsole(
-        type,
-        CIN_configs[type],
-        path;
-        input_prompt="BabelNAR.$type> ",
-        input_interpreter=main_received_convert # ! 与「来源网络」的一致
-    );
-    # 然后配置可选参数 #
-    # 服务器
-    server=WebsocketServer(),
-    # 连接默认就是空
-    connections=[],
-    # 启动服务器
-    server_launcher=launchWSServer,
-    # 转译输出
-    output_interpreter=(line::String) -> begin
-        objects::Vector{NamedTuple} = NamedTuple[]
+# * 转译CIN的命令输出，生成「具名元组」数据（后续编码成JSON，用于WebSocket传输）
+@isdefined(main_output_interpret) || (main_output_interpret(::Val{nars_type}, CIN_config::CINConfig, line::String) where {nars_type} = begin
+    objects::Vector{NamedTuple} = NamedTuple[]
 
-        head = findfirst(r"^\w+:", line) # EXE: XXXX # ! 只截取「开头纯英文，末尾为『:』」的内容
+    head = findfirst(r"^\w+:", line) # EXE: XXXX # ! 只截取「开头纯英文，末尾为『:』」的内容
 
-        isnothing(head) || begin
-            push!(objects, (
-                interface_name="BabelNAR@$(type)",
-                output_type=line[head][begin:end-1],
-                content=line[last(head)+1:end]
-            ))
-        end
-
-        return objects
-    end,
-    # 发送数据
-    server_send=(consoleWS::NARSConsoleWithServer, data::Vector{NamedTuple}) -> begin
-        # 只用封装一次JSON
-        local text::String = json(data)
-        @info "Message Sent" text
-        # * 遍历所有连接，广播之
-        for connection in consoleWS.connections
-            send(connection, text)
-        end
+    isnothing(head) || begin
+        push!(objects, (
+            interface_name="BabelNAR@$(nars_type)",
+            output_type=line[head][begin:end-1],
+            content=line[last(head)+1:end]
+        ))
     end
-)
+
+    return objects
+end)
+
+"覆盖：生成「带Websocket服务器」的NARS终端"
+function main_console(type::CINType, path, CIN_configs)::NARSConsoleWithServer
+    # 先定义一个临时函数，将其引用添加进服务器定义——然后添加「正式使用」的方法
+    _temp_input_interpreter(x::Nothing) = x
+
+    local server = NARSConsoleWithServer(
+        # 先内置一个终端 #
+        NARSConsole(
+            type,
+            CIN_configs[type],
+            path;
+            input_prompt="BabelNAR.$type> ",
+            input_interpreter=_temp_input_interpreter # ! 与「来源网络」的一致
+        );
+        # 然后配置可选参数 #
+        # 服务器
+        server=WebsocketServer(),
+        # 连接默认就是空
+        connections=[],
+        # 启动服务器
+        server_launcher=launchWSServer,
+        # 转译输出
+        output_interpreter=(line::String) -> main_output_interpret(Val(Symbol(type)), CIN_configs[type], line),
+        # 发送数据
+        server_send=(consoleWS::NARSConsoleWithServer, data::Vector{NamedTuple}) -> begin
+            # 只用封装一次JSON
+            local text::String = json(data)
+            @info "Message Sent" text
+            # * 遍历所有连接，广播之
+            for connection in consoleWS.connections
+                send(connection, text)
+            end
+        end
+    )
+    # 定义方法
+    _temp_input_interpreter(input::String) = main_received_convert(server, input)
+    return server
+end
+
 
 "覆盖：可选启动服务器"
 main_launch(consoleWS) = launch!(

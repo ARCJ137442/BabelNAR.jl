@@ -16,7 +16,7 @@ mutable struct CINCmdline <: CINProgram
     # 继承CINProgram #
 
     "存储对应CIN类型"
-    type::String
+    type::CINType
 
     "（2023-11-02新）存储CIN配置"
     config::CINConfig
@@ -41,14 +41,14 @@ mutable struct CINCmdline <: CINProgram
         - 因：但new顺序定死，没法灵活
     """
     function CINCmdline(
-        type::AbstractString,
+        type::CINType,
         config::CINConfig,
         executable_path::AbstractString,
         out_hook::Union{Function,Nothing}=nothing,
         cached_inputs::Vector{String}=String[] # Julia动态初始化默认值（每调用就计算一次，而非Python中只计算一次）
     )
         new(
-            string(type),
+            type,
             config,
             out_hook,
             string(executable_path),
@@ -58,7 +58,7 @@ mutable struct CINCmdline <: CINProgram
 end
 
 "实现：获取NARS类型"
-getNARSType(cmd::CINCmdline)::String = cmd.type
+getNARSType(cmd::CINCmdline)::CINType = cmd.type
 
 "实现：获取配置"
 getConfig(cmd::CINCmdline)::CINConfig = cmd.config
@@ -147,7 +147,7 @@ function async_read_out(cmd::CINCmdline)
                 cmd, line |> strip |> String # 确保SubString变成字符串
             ) # 非空：使用钩子
         catch e
-            @error e
+            print_error(e)
         end
     end
     # 循环结束的测试打印
