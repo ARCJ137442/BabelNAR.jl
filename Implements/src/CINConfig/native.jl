@@ -51,53 +51,66 @@ const translate_dict_OpenNARS = Dict([
     "IN" => NARSOutputType.IN,
     "OUT" => NARSOutputType.OUT,
     "EXE" => NARSOutputType.EXE,
+    "ANTICIPATE" => NARSOutputType.ANTICIPATE,
     # ! OpenNARS特有
-    "ANTICIPATE" => "ANTICIPATE",
     "CONFIRM" => "CONFIRM",
 ])
 const translate_dict_ONA = Dict([
     "Input" => NARSOutputType.IN,
     "Derived" => NARSOutputType.OUT,
     "Answer" => NARSOutputType.ANSWER,
-    # ! "EXE" 会在ONA的「转译函数」中专门处理，形如「EXE ^right executed with args」没有冒号
+    # ! "EXE" "ANTICIPATE" 会在ONA的「转译函数」中专门处理，形如「EXE ^right executed with args」没有冒号
     # "EXE" => NARSOutputType.EXE,
 ])
 const translate_dict_NARS_Python = Dict([
+    "IN" => NARSOutputType.IN,
 ])
 const translate_dict_OpenJunars = Dict([
 ])
-typeTranslate_OpenNARS(type::String)::String = get(
-    translate_dict_OpenNARS, type,
-    # ! 默认将其转为全大写形式
-    begin
+"惰性求值的类型转换 @ OpenNARS"
+function typeTranslate_OpenNARS(type::AbstractString)::String
+    local type_string::String = string(type)
+    if haskey(translate_dict_OpenNARS, type_string)
+        return translate_dict_OpenNARS[type_string]
+    else
+        # ! 默认将其转为全大写形式
         @warn "未定义的NARS输出类型「$type」"
-        uppercase(type)
+        return uppercase(type_string)
     end
-)
-typeTranslate_ONA(type::String)::String = get(
-    translate_dict_ONA, type,
-    # ! 默认将其转为全大写形式
-    begin
+end
+"惰性求值的类型转换 @ ONA"
+function typeTranslate_ONA(type::AbstractString)::String
+    local type_string::String = string(type)
+    if haskey(translate_dict_ONA, type_string)
+        return translate_dict_ONA[type_string]
+    else
+        # ! 默认将其转为全大写形式
         @warn "未定义的NARS输出类型「$type」"
-        uppercase(type)
+        return uppercase(type_string)
     end
-)
-typeTranslate_NARS_Python(type::String)::String = get(
-    translate_dict_NARS_Python, type,
-    # ! 默认将其转为全大写形式
-    begin
+end
+"惰性求值的类型转换 @ NARS_Python"
+function typeTranslate_NARS_Python(type::AbstractString)::String
+    local type_string::String = string(type)
+    if haskey(translate_dict_NARS_Python, type_string)
+        return translate_dict_NARS_Python[type_string]
+    else
+        # ! 默认将其转为全大写形式
         @warn "未定义的NARS输出类型「$type」"
-        uppercase(type)
+        return uppercase(type_string)
     end
-)
-typeTranslate_OpenJunars(type::String)::String = get(
-    translate_dict_OpenJunars, type,
-    # ! 默认将其转为全大写形式
-    begin
+end
+"惰性求值的类型转换 @ OpenJunars"
+function typeTranslate_OpenJunars(type::AbstractString)::String
+    local type_string::String = string(type)
+    if haskey(translate_dict_OpenJunars, type_string)
+        return translate_dict_OpenJunars[type_string]
+    else
+        # ! 默认将其转为全大写形式
         @warn "未定义的NARS输出类型「$type」"
-        uppercase(type)
+        return uppercase(type_string)
     end
-)
+end
 
 # 主字典定义
 
@@ -157,7 +170,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             @info "Output Interpret @ OpenNARS" line
 
             local objects::Vector{NamedTuple} = NamedTuple[]
-            local match_type = match(r"\^(\w+)", line) # EXE: XXXX # ! 只截取「开头纯英文，末尾为『: 』」的内容，并提取其中的「纯英文」
+            local match_type = match(r"^(\w+): ", line) # EXE: XXXX # ! 只截取「开头纯英文，末尾为『: 』」的内容，并提取其中的「纯英文」
 
             # * 头都是空的⇒不处理（返回空数组）
             if isnothing(match_type)
@@ -224,6 +237,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             EXE ^right executed with args
             ^deactivate executed with args
             ^left executed with args (* {SELF})
+            decision expectation=0.616961 implication: <((<{SELF} --> [left_blocked]> &/ ^say) &/ <(* {SELF}) --> ^left>) =/> <{SELF} --> [SAFE]>>. Truth: frequency=0.978072 confidence=0.394669 dt=1.000000 precondition: <{SELF} --> [left_blocked]>. :|: Truth: frequency=1.000000 confidence=0.900000 occurrenceTime=50
 
         =#
         output_interpret=(line::String) -> begin
@@ -236,14 +250,29 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             if contains(line, "executed")
                 # 使用正则表达式r"表达式"与「match」字符串方法，并使用括号选定其中返回的第一项
                 match_operator = match(r"(\^\w+)", line) # 使用「\w」匹配任意数字、字母、下划线
-                match_args = match(r"args \(\* .+\)$", line) # 使用「\w」匹配任意数字、字母、下划线
-                !isnothing(match_operator) && push!(objects, (
+                match_args = match(r"args \(\* (.+)\)$", line) # 使用「\w」匹配任意数字、字母、下划线
+                isnothing(match_operator) || push!(objects, (
                     output_type=NARSOutputType.EXE,
                     content=line, # 暂时没有特殊截取
-                    output_operation=[
-                        match_operator[1], # ! 带尖号
-                        String.(split(match_args[1], " "))... # 空格分隔 # TODO: 基于「括号匹配」的更好细分
-                    ]
+                    output_operation=(
+                        # * 无参⇒单一操作数组
+                        isnothing(match_args) ? [match_operator[1]] :
+                        # * 有参⇒展开参数
+                        [
+                            match_operator[1], # ! 带尖号
+                            (
+                                # 空格分隔 # TODO: 基于「括号匹配」的更好细分
+                                String.(split(match_args[1], " "))
+                            )...
+                        ]
+                    )
+                ))
+                # * 特殊处理「预期」 "decision expectation"⇒ANTICIPATE
+            elseif startswith(line, "decision expectation")
+                push!(objects, (
+                    output_type=NARSOutputType.ANTICIPATE,
+                    content=line[length("decision expectation")+1:end],
+                    output_operation=[] #! 空数组⇒无操作
                 ))
                 # * 特殊处理「无回答」
             elseif line === "Answer: None."
@@ -251,7 +280,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             else # * 默认文本处理
                 local head = findfirst(r"^\w+: ", line) # EXE: XXXX # ! 只截取「开头纯英文，末尾为『: 』」的内容
                 isnothing(head) || push!(objects, (
-                    output_type=line[head][1:end-1],
+                    output_type=typeTranslate_ONA(line[head][1:end-2]),
                     content=line[last(head)+1:end],
                     output_operation=[] #! 空数组⇒无操作
                 ))
@@ -284,21 +313,30 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
         - 现在「操作截取」已作为「output_operation::NARSOperationVec」以「字符串数组」的形式被兼容
         例句：
             EXE: ^left based on desirability: 0.9
+            PROCESSED GOAL: SentenceID:2081:ID ({SELF} --> [SAFE])! :|: %1.00;0.03%from SentenceID:2079:ID ({SELF} --> [SAFE])! :|: %1.00;0.00%,SentenceID:2080:ID ({SELF} --> [SAFE])! :|: %1.00;0.02%,
+            PREMISE IS TRUE: ((*,{SELF}) --> ^right)
+            PREMISE IS SIMPLIFIED ({SELF} --> [SAFE]) FROM (&|,({SELF} --> [SAFE]),((*,{SELF}) --> ^right))
+
             # TODO：找到NARS Python中「带参操作」的例句
         =#
         output_interpret=(line::String) -> begin
             @info "Output Interpret @ NARS Python" line
 
             local objects::Vector{NamedTuple} = NamedTuple[]
-            local head = match(r"^(\w+): ", line) # ! 只截取「开头纯英文，末尾为『: 』」的内容
 
-            # 无头⇒不理
-            if isnothing(head)
-                # fallback：返回空
-                # * 操作截取：匹配「EXE: 」开头的行
-            elseif head === "EXE"
+            # * 特殊处理「派生目标」 "PROCESSED GOAL"⇒？？？（暂且不明）
+            if startswith(line, "PROCESSED GOAL")
+                # * 特殊处理「前提为真」 "PREMISE IS TRUE"⇒？？？（暂且不明）
+            elseif startswith(line, "PREMISE IS TRUE")
+                # * 特殊处理「前提简化」 "PREMISE IS SIMPLIFIED"⇒？？？（暂且不明）
+            elseif startswith(line, "PREMISE IS SIMPLIFIED")
+                # * 无头⇒不理
+            elseif isnothing(local match_type = match(r"^(\w+): ", line)) # ! 只截取「开头纯英文，末尾为『: 』」的内容
+            # fallback：返回空
+            # * 操作截取：匹配「EXE: 」开头的行
+            elseif match_type[1] === "EXE"
                 # 使用正则表达式r"表达式"与「match」字符串方法，并使用括号选定其中返回的第一项
-                match_operator = match(r"(\^\w+)", line) # 带尖号
+                match_operator = match(r"\^*(\^\w+)", line) # ! 带尖号，但只用一个 # 不知为何会有多个，输入的是`^left`结果是`EXE: ^^right based on desirability: 0.5126576876329072`
                 isnothing(match_operator) || push!(objects, (
                     # `interface_name`交给外部调用者包装
                     output_type=NARSOutputType.EXE,
@@ -306,9 +344,9 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
                     output_operation=[match_operator[1]]
                 ))
             else # * 默认文本处理
-                isnothing(head) || push!(objects, (
-                    output_type=line[head][1:end-1],
-                    content=line[last(head)+1:end],
+                isnothing(match_type) || push!(objects, (
+                    output_type=typeTranslate_NARS_Python(match_type[1]),
+                    content=line[length(match_type)+3:end],
                     output_operation=[] #! 空数组⇒无操作
                 ))
             end

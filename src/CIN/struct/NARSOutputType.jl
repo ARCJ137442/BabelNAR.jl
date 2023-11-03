@@ -14,7 +14,8 @@ NARSOutputType = (;
     ACHIEVED="ACHIEVED",
     EXE="EXE",
     INFO="INFO",
-    COMMENT="COMMENT"
+    COMMENT="COMMENT",
+    ANTICIPATE="ANTICIPATE"
 )
 
 NARSOperationVec = String[]

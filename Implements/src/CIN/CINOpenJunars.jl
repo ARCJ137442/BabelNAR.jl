@@ -1,7 +1,7 @@
 # ! be included in: BabelNARImplements.jl @ module BabelNARImplements
 
 # 导入
-import BabelNAR: isAlive, launch!, terminate!, getNARSType
+import BabelNAR: isAlive, launch!, terminate!, getNARSType, getConfig
 
 # 导出
 export CINOpenJunars, TYPE_OPEN_JUNARS
@@ -90,7 +90,7 @@ mutable struct CINOpenJunars <: CINJuliaModule
 
     "来自Console.jl的统一调用方法"
     function CINOpenJunars(
-        ::String, # 不使用
+        ::CINType, # 不使用
         config::CINConfig,
         path_Junars::String, # 与其它类型CIN一致
         out_hook::Union{Function,Nothing}=nothing, # 与其它类型CIN一致
