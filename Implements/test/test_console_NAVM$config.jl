@@ -16,8 +16,12 @@ function NAIR_interpret(consoleWS::NARSConsoleWithServer, message::String)::Vect
 
     # * 尝试进一步针对CMD解析
     try
-        local cmd = parse_cmd(message)
-        return @show getConfig(consoleWS.console.program).NAIR_interpreter(cmd)
+        local inputs = getConfig(consoleWS.console.program).NAIR_interpreter(
+            # * local cmd = 
+            parse_cmd(message)
+        )
+        @info "NAIR CMD interpretation success：" inputs
+        return inputs
     catch err # * 解析错误⇒返回空
         @error "NAIR CMD parse error：" err
         return String[]

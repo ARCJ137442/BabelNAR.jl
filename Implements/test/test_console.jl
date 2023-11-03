@@ -36,14 +36,19 @@ function get_valid_NARS_type_from_input(
         # 输入后空值合并
         type = isempty(inp) ? (default_type) :
                CINType(inp)
-        # * 合法⇒退出⇒返回
-        type in valid_types && break
+        # * 合法⇒返回
+        for type2 in valid_types
+            # * 条件优先级：相等⇒前缀⇒后缀
+            (type === type2 || # 相等
+             startswith(string(type2), string(type)) ||# 前缀也算合法
+             endswith(string(type2), string(type))
+            ) && return type2
+        end
         # * 非法⇒警告⇒重试
         printstyled("Invalid Type $(type)!\n"; color=:red)
     end
 
-    # 返回合法的类型
-    return type
+    # ! 永远不会运行到这里
 end
 
 begin # * 可执行文件路径
