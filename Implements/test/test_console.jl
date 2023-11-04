@@ -67,7 +67,7 @@ end
 
 # * 主函数 * #
 # * 获取NARS类型
-@isdefined(main_type) || (main_type(default_type::CINType) = begin
+@isdefined(main_type) || (main_type(default_type::CINType)::CINType = begin
     global not_VSCode_running
 
     @isdefined(FORCED_TYPE) ? FORCED_TYPE :
@@ -79,7 +79,7 @@ end
     TYPE_OPENNARS
 end)
 # * 根据类型获取可执行文件路径
-@isdefined(main_path) || (main_path(type::CINType) = paths[type])
+@isdefined(main_path) || (main_path(type::CINType)::String = paths[type])
 # * 生成NARS终端
 @isdefined(main_console) || (main_console(type::CINType, path, CIN_configs) = NARSConsole(
     type,

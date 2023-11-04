@@ -9,8 +9,8 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
 [[deps.BabelNAR]]
 deps = ["Reexport"]
-git-tree-sha1 = "2071328f05c299f43c65da20273487ed36d21b01"
-repo-rev = "master"
+git-tree-sha1 = "bb445a67f730a3b2444e0f93d00a5e6ad28798a7"
+repo-rev = "main"
 repo-url = "H:\\A137442\\Develop\\AGI\\NARS\\_Project\\BabelNAR"
 uuid = "b7421120-50f0-43fc-8b2b-7721c3d5cbfc"
 version = "0.1.1"
@@ -110,11 +110,11 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[deps.NAVM]]
 deps = ["JuNarsese", "JuNarseseParsers", "PikaParser", "Reexport"]
-git-tree-sha1 = "b0cb736bf1f0da10e953eb010b032599a2bcdad1"
+git-tree-sha1 = "54a45adee834b9ad24fdfdd4795792353d8467c9"
 repo-rev = "dev"
 repo-url = "H:\\A137442\\Develop\\AGI\\NARS\\_Project\\NAVM"
 uuid = "2245f648-40fa-438d-8bb4-5b93bf8a933b"
-version = "0.3.0"
+version = "0.4.0"
 
 [[deps.NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"

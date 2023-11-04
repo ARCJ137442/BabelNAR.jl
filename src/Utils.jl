@@ -706,4 +706,90 @@ begin
 
 end
 
+begin
+
+    export split_between_root_brackets
+
+    """
+    根据「根部括号」拆分字符串
+    - 其中的「分隔符」「开括弧」「闭括弧」都是单字符
+        - 所有「开括弧」「闭括弧」的地位相同
+            - # * 因为「正确的语法」都不可能有「不匹配的括号」
+            - 例：认为「(]」「{]」是合法的
+    - 会把「连续分隔符」认作是「同一分隔符」
+    - 实例：
+        - @example "single" -> ["single"]
+        - @example "{SELF}" -> ["{SELF}"]
+        - @example "a {a b c} b" -> ["a", "{a b c}", "b"]
+        - @example "{SELF}, move, (*, self, move), [good, red]" -> ["{SELF}", "move", "(*, self, move)", "[good, red]"]
+        - @example "(*, self, move) [good, [red, blue], (^left {SELF}, move)]" -> ["{SELF}", "move", "(*, self, move)", "[good, red]"]
+        - @example split_between_root_brackets("[in the], Utils{ (of, BabelNAR) [you can connect]}the CIN[ in same ], {language, NAIR}, !")
+            - 输出: SubString["[in the]", "Utils{ (of, BabelNAR) [you can connect]}the", "CIN[ in same ]", "{language, NAIR}", "!"]
+    """
+    function split_between_root_brackets(text::AbstractString, separators::AbstractString=", ", open_brackets::AbstractString="({[", close_brackets::AbstractString=")}]")
+
+        # 存储返回值
+        local result::Vector{SubString} = SubString[]
+
+        # 存储状态变量
+        local index::UInt = firstindex(text) # ! 为支持Unicode，需要使用`nextind`方法迭代
+        local left_slice_i::UInt = 1 # 无需右索引：在检测到「最终闭合括弧」后，当前索引即为「右索引」
+        local char::Char
+        local bracket_level::UInt = 0
+        local last_is_separator::Bool = false # 上一个字符是否为分隔符
+
+        # 迭代开始
+        while index < lastindex(text)
+
+            # 获取字符
+            char = text[index]
+
+            # * 只有在「括弧等级==0」时进行切分
+            if bracket_level == 0 # !【2023-11-04 18:32:51】因为类型不同，不能用全等
+                # * 若这时是开括弧⇒层级递增
+                if occursin(char, close_brackets)
+                    error("多余的闭括弧！text=$text, index=$index, char=$char")
+                end
+                # ! 必须分别处理「括弧」和「分隔」，不能「升了层级没更新索引」
+                # * 先前非分隔符 && 现在是分隔符 ⇒ 切分
+                if occursin(char, separators) && !last_is_separator
+                    push!(result, @inbounds @view(text[left_slice_i:prevind(text, index, 1)]))#
+                # * 先前为分隔符 && 现在非分隔符 ⇒ 确定「左端索引」
+                elseif last_is_separator && !occursin(char, separators)
+                    left_slice_i = index
+                end
+            end
+
+            # * 处理「括弧开闭」
+            if occursin(char, open_brackets) # ! 这个判断必须要放前边，不然会一直在「括弧等级==0」的情况，并且无法识别「第一个出现的开括弧」
+                # ! 确定「左端索引」是和「括弧开闭」无关的——「开括弧」「闭括弧」「分隔符」之间不应有交集
+                # * 层级递增
+                bracket_level += 1#
+            # * 「括弧等级>0」的闭括弧⇒层级递减
+            elseif occursin(char, close_brackets)
+                bracket_level -= 1
+                # ! 「括弧等级」减到了零，不一定意味着要切分：后面可能还有「非分隔符字符」
+            end
+
+            # 更新状态
+            last_is_separator = occursin(char, separators)
+            # 步进
+            index = nextind(text, index, 1)
+        end
+        # 在最终索引处
+        char = text[index]
+        # * 先前为分隔符 && 现在非分隔符 ⇒ 确定「左端索引」
+        if last_is_separator && !occursin(char, separators)
+            left_slice_i = index
+        end
+        # * 括弧层级==0 && 非分隔符 || 括弧层级==1 && 闭括弧 ⇒ 切分
+        if bracket_level == 0 && !occursin(char, separators) || bracket_level == 1 && occursin(char, close_brackets)
+            push!(result, @inbounds @view(text[left_slice_i:index]))
+        end
+
+        return result
+    end
+
+end
+
 end

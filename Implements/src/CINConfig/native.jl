@@ -7,6 +7,16 @@
     - ONA
     - NARS-Python
     - OpenJunars
+
+对外JSON输出的格式，可参考Matriangle`src/mods/NARFramework/NARSTypes.type.ts`:
+```typescript
+export type WebNARSOutput = {
+	interface_name?: string
+	output_type?: string
+	content?: string
+	output_operation?: string[]
+}
+```
 """
 
 # 使用NAVM包 # ! 下面的符号截止至【2023-11-02 22:49:36】
@@ -163,6 +173,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             Executed based on: $0.3191;0.1188;0.8005$ <(&/,<{SELF} --> [right_blocked]>,+568,(^left,{SELF}),+4) =/> <{SELF} --> [SAFE]>>. %1.00;0.60%
             ANTICIPATE: <{SELF} --> [SAFE]>
             DISAPPOINT: <{SELF} --> [SAFE]>
+            EXE: $1.00;0.99;1.00$ ^right([{SELF}, x])=null
 
         =#
         output_interpret=(line::String) -> begin
@@ -173,34 +184,46 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             local match_type = match(r"^(\w+): ", line) # EXE: XXXX # ! 只截取「开头纯英文，末尾为『: 』」的内容，并提取其中的「纯英文」
 
             # * 头都是空的⇒不处理（返回空数组）
-            if isnothing(match_type)
-                # * 操作截取：匹配「EXE: 」开头的行
-            elseif match_type[1] === "EXE"
-                # 使用正则表达式r"表达式"与「match」字符串方法，并使用括号选定其中返回的第一项
-                match_type = match(r"\^(\w+)\((.*)\)", line)
-                # 使用isnothing避免「假冒语句」匹配出错
-                if !isnothing(match_type) && length(match_type) > 1
-                    push!(objects, (
-                        output_type=NARSOutputType.EXE,
-                        content=line[last(head)+1:end],
-                        output_operation=[
-                            match_type[1], # 匹配名称
-                            String.(split(match_type[2][2:end-1], r" *\, *"))...
-                            # ↑匹配参数（先用括号定位，再去方括号，最后逗号分隔） # TODO: 基于「括号匹配」的更好细分
-                        ]
+            if isnothing(match_type) #
+            else
+                # 统一获取输出内容
+                local content = line[length(match_type[1])+1:end] # 翻译成统一的「NARS输出类型」
+                local output_type = typeTranslate_OpenNARS(match_type[1])
+
+                # * 操作截取：匹配「EXE: 」开头的行 # 例句：EXE: $1.00;0.99;1.00$ ^right([{SELF}, x])=null
+                if output_type == NARSOutputType.EXE # ! 这里可能是SubString，所以不能使用全等号
+                    # 使用正则表达式r"表达式"与「match」字符串方法，并使用括号选定其中返回的第一项
+                    # 样例：`^left([{SELF}])`
+                    local match_operation = match(r"(\^\w+)\(\[(.*)\]\)=\w+$", line) # ! 名称带尖号 # 【2023-11-05 01:18:15】目前操作最后还是以`=null`结尾
+                    # 使用isnothing避免「假冒语句」匹配出错
+                    if !isnothing(match_operation) && length(match_operation) > 1
+                        push!(objects, (;
+                            output_type,
+                            content,
+                            output_operation=[
+                                match_operation[1],
+                                # * 基于「括号匹配」的更好拆分
+                                split_between_root_brackets(
+                                    match_operation[2], # 样例：`{SELF}, x`
+                                    # 分隔符
+                                    ", ",
+                                    # 开括弧和闭括弧是默认的
+                                )... # !【2023-11-05 02:06:23】SubString也是成功的
+                            ]
+                        ))
+                    end #
+                # * 默认文本处理
+                else
+                    # 正则匹配取「英文单词」部分，如「IN」
+
+                    # ! 由于先前的正则匹配，所以这个正则匹配必然有值
+                    push!(objects, (;
+                        output_type,
+                        content
+                        # output_operation=[] # ! 无操作⇒无需参数
                     ))
                 end
-            else # * 默认文本处理
-                # 正则匹配取「英文单词」部分，如「IN」
-
-                # ! 由于先前的正则匹配，所以这个正则匹配必然有值
-                push!(objects, (
-                    output_type=typeTranslate_OpenNARS(match_type[1]), # 翻译成统一的「NARS输出类型」
-                    content=line[length(match_type[1])+1:end],
-                    output_operation=[] # ! 空数组⇒无操作
-                ))
             end
-
             return objects
         end,
 
@@ -234,9 +257,10 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             Derived: <<self --> good> ==> <(* x) --> ^left>>. Priority=0.196085 Truth: frequency=1.000000, confidence=0.447514
             Answer: <B --> C>. creationTime=2 Truth: frequency=1.000000, confidence=0.447514
             Answer: None.
-            EXE ^right executed with args
             ^deactivate executed with args
+            ^say executed with args
             ^left executed with args (* {SELF})
+            ^left executed with args ({SELF} * x)
             decision expectation=0.616961 implication: <((<{SELF} --> [left_blocked]> &/ ^say) &/ <(* {SELF}) --> ^left>) =/> <{SELF} --> [SAFE]>>. Truth: frequency=0.978072 confidence=0.394669 dt=1.000000 precondition: <{SELF} --> [left_blocked]>. :|: Truth: frequency=1.000000 confidence=0.900000 occurrenceTime=50
 
         =#
@@ -247,37 +271,46 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             local objects::Vector{NamedTuple} = NamedTuple[]
 
             # * 操作截取：匹配「EXE: 」开头的行
-            if contains(line, "executed")
+            if contains(line, "executed") # 越短越好
+                # ! 假定：必定能匹配到「操作被执行」
+                local match_operation::RegexMatch = match(r"^(\^\w+) executed with args(?: \((.*)\))?$", line)
                 # 使用正则表达式r"表达式"与「match」字符串方法，并使用括号选定其中返回的第一项
-                match_operator = match(r"(\^\w+)", line) # 使用「\w」匹配任意数字、字母、下划线
-                match_args = match(r"args \(\* (.+)\)$", line) # 使用「\w」匹配任意数字、字母、下划线
-                isnothing(match_operator) || push!(objects, (
-                    output_type=NARSOutputType.EXE,
-                    content=line, # 暂时没有特殊截取
-                    output_operation=(
-                        # * 无参⇒单一操作数组
-                        isnothing(match_args) ? [match_operator[1]] :
-                        # * 有参⇒展开参数
-                        [
-                            match_operator[1], # ! 带尖号
-                            (
-                                # 空格分隔 # TODO: 基于「括号匹配」的更好细分
-                                String.(split(match_args[1], " "))
-                            )...
-                        ]
+                # * 操作无参数 样例：`^say executed with args`
+                if isnothing(match_operation[2])
+                    push!(objects, (
+                        output_type=NARSOutputType.EXE,
+                        content=line, # 暂无特殊截取
+                        output_operation=[match_operation[1]]
+                    ))#
+                # * 操作有参数 样例：`^left executed with args (* {SELF})` | `^left executed with args ({SELF} * x)`
+                else
+                    # 分「二元操作」和「前缀操作」（二元操作老是想着「标新立异」而不是「整齐划一」……说白了就是为了好看）
+                    local match_args::Vector{SubString} = (
+                        startswith(match_operation[2], "* ") ?
+                        # 样例：`* {SELF}` # !【2023-11-05 02:50:32】截止至目前，没经过测试
+                        split_between_root_brackets(match_operation[2][3:end], " ") :
+                        # 样例：`{SELF} * x` # *【2023-11-05 02:51:15】测试成功
+                        split_between_root_brackets(match_operation[2], " *") # 必须把「*」也视作分隔符（根部）
                     )
-                ))
-                # * 特殊处理「预期」 "decision expectation"⇒ANTICIPATE
+                    @show match_args
+                    push!(objects, (
+                        output_type=NARSOutputType.EXE,
+                        content=line, # 暂无特殊截取
+                        output_operation=[match_operation[1], match_args...]
+                    ))
+                end#
+            # * 特殊处理「预期」 "decision expectation"⇒ANTICIPATE
             elseif startswith(line, "decision expectation")
                 push!(objects, (
                     output_type=NARSOutputType.ANTICIPATE,
                     content=line[length("decision expectation")+1:end],
                     output_operation=[] #! 空数组⇒无操作
-                ))
-                # * 特殊处理「无回答」
-            elseif line === "Answer: None."
-                # 不产生任何输出
-            else # * 默认文本处理
+                )) #
+            # * 特殊处理「无回答」
+            elseif line == "Answer: None." # ! 这里可能是SubString，所以不能使用全等号
+            # 不产生任何输出
+            # * 默认文本处理
+            else
                 local head = findfirst(r"^\w+: ", line) # EXE: XXXX # ! 只截取「开头纯英文，末尾为『: 』」的内容
                 isnothing(head) || push!(objects, (
                     output_type=typeTranslate_ONA(line[head][1:end-2]),
@@ -325,25 +358,26 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             local objects::Vector{NamedTuple} = NamedTuple[]
 
             # * 特殊处理「派生目标」 "PROCESSED GOAL"⇒？？？（暂且不明）
-            if startswith(line, "PROCESSED GOAL")
-                # * 特殊处理「前提为真」 "PREMISE IS TRUE"⇒？？？（暂且不明）
-            elseif startswith(line, "PREMISE IS TRUE")
-                # * 特殊处理「前提简化」 "PREMISE IS SIMPLIFIED"⇒？？？（暂且不明）
-            elseif startswith(line, "PREMISE IS SIMPLIFIED")
-                # * 无头⇒不理
+            if startswith(line, "PROCESSED GOAL") # ! 暂不处理
+            # * 特殊处理「前提为真」 "PREMISE IS TRUE"⇒？？？（暂且不明）
+            elseif startswith(line, "PREMISE IS TRUE") # ! 暂不处理
+            # * 特殊处理「前提简化」 "PREMISE IS SIMPLIFIED"⇒？？？（暂且不明）
+            elseif startswith(line, "PREMISE IS SIMPLIFIED") # ! 暂不处理
+            # * 无头⇒不理
             elseif isnothing(local match_type = match(r"^(\w+): ", line)) # ! 只截取「开头纯英文，末尾为『: 』」的内容
             # fallback：返回空
             # * 操作截取：匹配「EXE: 」开头的行
-            elseif match_type[1] === "EXE"
+            elseif match_type[1] == "EXE" # ! 这里可能是SubString，所以不能使用全等号
                 # 使用正则表达式r"表达式"与「match」字符串方法，并使用括号选定其中返回的第一项
                 match_operator = match(r"\^*(\^\w+)", line) # ! 带尖号，但只用一个 # 不知为何会有多个，输入的是`^left`结果是`EXE: ^^right based on desirability: 0.5126576876329072`
                 isnothing(match_operator) || push!(objects, (
                     # `interface_name`交给外部调用者包装
-                    output_type=NARSOutputType.EXE,
-                    content=line, # "^left based on desirability: 0.9"
+                    output_type=NARSOutputType.EXE, # !【2023-11-05 03:07:07】检验正常
+                    content=line[length(match_type)+1:end], # "^^left based on desirability: 0.9"
                     output_operation=[match_operator[1]]
-                ))
-            else # * 默认文本处理
+                )) #
+            # * 默认文本处理
+            else
                 isnothing(match_type) || push!(objects, (
                     output_type=typeTranslate_NARS_Python(match_type[1]),
                     content=line[length(match_type)+3:end],
