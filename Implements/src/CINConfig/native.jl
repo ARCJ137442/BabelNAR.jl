@@ -34,7 +34,7 @@ using .Implements: FE_TextParser
 using .Implements: Implements
 
 export NATIVE_CIN_CONFIGS
-export NATIVE_CIN_TYPES, TYPE_OPENNARS, TYPE_ONA, TYPE_NARS_PYTHON, TYPE_OPEN_JUNARS
+export NATIVE_CIN_TYPES, TYPE_OPENNARS, TYPE_ONA, TYPE_NARS_PYTHON, TYPE_OPEN_JUNARS, TYPE_PYNARS
 
 # 常量池 #
 
@@ -44,6 +44,7 @@ const NATIVE_CIN_TYPES = [
     const TYPE_OPENNARS::CINType = :OpenNARS
     const TYPE_ONA::CINType = :ONA
     const TYPE_NARS_PYTHON::CINType = :Python
+    const TYPE_PYNARS::CINType = :PyNARS
     TYPE_OPEN_JUNARS # ! 可能在别的模块中定义，但一定得有
 ]
 
@@ -53,6 +54,7 @@ const NATIVE_BE_INSTANCES = [
     const instance_BE_ONA = BE_ONA()
     const instance_BE_NARS_Python = BE_NARS_Python()
     const instance_BE_OpenJunars = BE_OpenJunars()
+    const instance_BE_PyNARS = BE_PyNARS()
 ]
 
 #= NARS「输出前缀」翻译
@@ -77,50 +79,37 @@ const translate_dict_NARS_Python = Dict([
 ])
 const translate_dict_OpenJunars = Dict([
 ])
+const translate_dict_PyNARS = Dict([
+    "IN" => NARSOutputType.IN,
+    "OUT" => NARSOutputType.OUT,
+    "ERROR" => NARSOutputType.ERROR,
+    "ANSWER" => NARSOutputType.ANSWER,
+    "ACHIEVED" => NARSOutputType.ACHIEVED,
+    "EXE" => NARSOutputType.EXE,
+    "INFO" => NARSOutputType.INFO,
+    "COMMENT" => NARSOutputType.COMMENT,
+    # !【2023-11-05 22:25:47】除了「ANTICIPATE」其它都是PyNARS内置的
+])
+function typeTranslate(type::AbstractString, translate_dict::Dict{String,String})::String
+    local type_string::String = string(type)
+    if haskey(translate_dict, type_string)
+        return translate_dict[type_string]
+    else
+        # ! 默认将其转为全大写形式
+        @warn "未定义的NARS输出类型「$type」"
+        return uppercase(type_string)
+    end
+end
 "惰性求值的类型转换 @ OpenNARS"
-function typeTranslate_OpenNARS(type::AbstractString)::String
-    local type_string::String = string(type)
-    if haskey(translate_dict_OpenNARS, type_string)
-        return translate_dict_OpenNARS[type_string]
-    else
-        # ! 默认将其转为全大写形式
-        @warn "未定义的NARS输出类型「$type」"
-        return uppercase(type_string)
-    end
-end
+typeTranslate_OpenNARS(type::AbstractString)::String = typeTranslate(type, translate_dict_OpenNARS)
 "惰性求值的类型转换 @ ONA"
-function typeTranslate_ONA(type::AbstractString)::String
-    local type_string::String = string(type)
-    if haskey(translate_dict_ONA, type_string)
-        return translate_dict_ONA[type_string]
-    else
-        # ! 默认将其转为全大写形式
-        @warn "未定义的NARS输出类型「$type」"
-        return uppercase(type_string)
-    end
-end
+typeTranslate_ONA(type::AbstractString)::String = typeTranslate(type, translate_dict_ONA)
 "惰性求值的类型转换 @ NARS_Python"
-function typeTranslate_NARS_Python(type::AbstractString)::String
-    local type_string::String = string(type)
-    if haskey(translate_dict_NARS_Python, type_string)
-        return translate_dict_NARS_Python[type_string]
-    else
-        # ! 默认将其转为全大写形式
-        @warn "未定义的NARS输出类型「$type」"
-        return uppercase(type_string)
-    end
-end
+typeTranslate_NARS_Python(type::AbstractString)::String = typeTranslate(type, translate_dict_NARS_Python)
 "惰性求值的类型转换 @ OpenJunars"
-function typeTranslate_OpenJunars(type::AbstractString)::String
-    local type_string::String = string(type)
-    if haskey(translate_dict_OpenJunars, type_string)
-        return translate_dict_OpenJunars[type_string]
-    else
-        # ! 默认将其转为全大写形式
-        @warn "未定义的NARS输出类型「$type」"
-        return uppercase(type_string)
-    end
-end
+typeTranslate_OpenJunars(type::AbstractString)::String = typeTranslate(type, translate_dict_OpenJunars)
+"惰性求值的类型转换 @ PyNARS"
+typeTranslate_PyNARS(type::AbstractString)::String = typeTranslate(type, translate_dict_PyNARS)
 
 # 主字典定义
 
@@ -135,6 +124,7 @@ end
     - 足足慢了0.4s
 """
 const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型别名」是可以直接作构造函数的
+    # * OpenNARS * #
     TYPE_OPENNARS => CINConfig(;
 
         # 使用命令行控制
@@ -235,6 +225,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
         =#
         NAIR_interpreter=(cmd::NAIR_CMD) -> transform(instance_BE_OpenNARS, cmd)
     ),
+    # * ONA * #
     TYPE_ONA => CINConfig(;
 
         # 使用命令行控制
@@ -304,7 +295,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
                 push!(objects, (
                     output_type=NARSOutputType.ANTICIPATE,
                     content=line[length("decision expectation")+1:end],
-                    output_operation=[] #! 空数组⇒无操作
+                    # output_operation=[] #! 空数组⇒无操作
                 )) #
             # * 特殊处理「无回答」
             elseif line == "Answer: None." # ! 这里可能是SubString，所以不能使用全等号
@@ -315,7 +306,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
                 isnothing(head) || push!(objects, (
                     output_type=typeTranslate_ONA(line[head][1:end-2]),
                     content=line[last(head)+1:end],
-                    output_operation=[] #! 空数组⇒无操作
+                    # output_operation=[] #! 空数组⇒无操作
                 ))
             end
 
@@ -330,6 +321,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
         =#
         NAIR_interpreter=(cmd::NAIR_CMD) -> transform(instance_BE_ONA, cmd)
     ),
+    # * NARS-Python #
     TYPE_NARS_PYTHON => CINConfig(;
 
         # 使用命令行控制
@@ -381,7 +373,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
                 isnothing(match_type) || push!(objects, (
                     output_type=typeTranslate_NARS_Python(match_type[1]),
                     content=line[length(match_type)+3:end],
-                    output_operation=[] #! 空数组⇒无操作
+                    # output_operation=[] #! 空数组⇒无操作
                 ))
             end
             # * fallback：返回空
@@ -396,6 +388,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
         =#
         NAIR_interpreter=(cmd::NAIR_CMD) -> transform(instance_BE_NARS_Python, cmd)
     ),
+    # * OpenJunars* #
     TYPE_OPEN_JUNARS => CINConfig(; #= 因此依赖于OpenJunars.jl =#
 
         # 使用特制Junars类控制
@@ -422,5 +415,109 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             - # * `CYC`⇒CIN周期递进」
         =#
         NAIR_interpreter=(cmd::NAIR_CMD) -> transform(instance_BE_OpenJunars, cmd)
+    ),
+    # * PyNARS * #
+    TYPE_PYNARS => CINConfig(;
+
+        # 使用命令行控制
+        program_type=CINCmdline,
+
+        # 程序启动命令
+        launch_arg_generator=(executable_path::String) -> (
+            `$executable_path`,
+            String[]
+        ),
+
+        #= 输出转译
+        # * @method (line::String) -> Vector{@NamedTuple{output_type::String,content::String,output_operation::NARSOperationVec}}
+        - 现在「操作截取」已作为「output_operation::NARSOperationVec」以「字符串数组」的形式被兼容
+        例句：
+            "\e[49m      \e[49m      \e[49m \e[34mINFO  :\e[39m \e[38;5;249mDone. Time-cost: 0.0008141994476318359s.\e[39m"
+            "\e[49m      \e[49m      \e[49m \e[34mINFO  :\e[39m \e[38;5;249mLoading RuleMap <LUT_Tense.pkl>...\e[39m"
+            "\e[49m      \e[49m      \e[49m \e[34mINFO  :\e[39m \e[38;5;249mDone. Time-cost: 0.0010750293731689453s.\e[39m"
+            "\e[48;2;98;10;10m 0.70 \e[49m\e[48;2;10;41;10m 0.25 \e[49m\e[48;2;10;10;89m 0.62 \e[49m\e[33mOUT   :\e[39m<<(*, x)-->^left>==>B>. %1.000;0.250%"
+            "\e[48;2;98;10;10m 0.70 \e[49m\e[48;2;10;41;10m 0.25 \e[49m\e[48;2;10;10;86m 0.60 \e[49m\e[33mOUT   :\e[39m<B==><(*, x)-->^left>>. %1.000;0.200%"
+            "\e[48;2;98;10;10m 0.70 \e[49m\e[48;2;10;41;10m 0.25 \e[49m\e[48;2;10;10;89m 0.62 \e[49m\e[33mOUT   :\e[39m<<(*, x)-->^left>==>B>. %1.000;0.250%"
+            "\e[48;2;98;10;10m 0.70 \e[49m\e[48;2;10;41;10m 0.25 \e[49m\e[48;2;10;10;86m 0.60 \e[49m\e[33mOUT   :\e[39m<B==><(*, x)-->^left>>. %1.000;0.200%"
+            "\e[48;2;98;10;10m 0.70 \e[49m\e[48;2;10;41;10m 0.25 \e[49m\e[48;2;10;10;89m 0.62 \e[49m\e[33mOUT   :\e[39m<<(*, x)-->^left>==>B>. %1.000;0.250%"
+            "\e[49m    \e[49m    \e[49m\e[32mEXE   :\e[39m<(*, x)-->^left> = \$0.016;0.225;0.562\$ <(*, x)-->^left>! %1.000;0.125% {None: 3, 1, 2}"
+            "\e[48;2;12;10;10m 0.02 \e[49m\e[48;2;10;38;10m 0.22 \e[49m\e[48;2;10;10;81m 0.56 \e[49m\e[33mOUT   :\e[39m<x-->(/, ^left, _)>! %1.000;0.125%"
+            "\e[48;2;133;10;10m 0.97 \e[49m\e[48;2;10;73;10m 0.50 \e[49m\e[48;2;10;10;81m 0.56 \e[49m\e[32mACHIEVED:\e[39m<(*, x)-->^left>. :\\: %1.000;0.900%"
+
+        =#
+        output_interpret=(line::String) -> begin
+            @info "Output Interpret @ PyNARS" line
+
+            local objects::Vector{NamedTuple} = NamedTuple[]
+
+            # * 去除其中的ANSI转义序列，如：`\e[39m` # 并去除前后多余空格
+            local actual_line::String = strip(replace(line, r"\e\[[0-9;]*m" => ""))
+            #= 去除后样例：
+            * `0.70  0.25  0.60 OUT   :<B==><(*, x)-->^left>>. %1.000;0.200%`
+            * INFO  : Loading RuleMap <LUT.pkl>...
+            * EXE   :<(*, x)-->^left> = $0.016;0.225;0.562$ <(*, x)-->^left>! %1.000;0.125% {None: 3, 1, 2}
+            * EXE   :<(*, 1, 2, 3)-->^left> = $0.000;0.225;0.905$ <(*, 1, 2, 3)-->^left>! %1.000;0.287% {None: 2, 1, 0}
+            * EXE   :<(*, {SELF}, [good])-->^f> = $0.026;0.450;0.905$ <(*, {SELF}, [good])-->^f>! %1.000;0.810% {None: 2, 1}
+            =#
+
+            # * 特殊处理「信息」"INFO"：匹配「INFO」开头的行 样例：`INFO  : Loading RuleMap <LUT.pkl>...`
+            local head_match::Union{RegexMatch,Nothing} = nothing
+            if startswith(actual_line, "INFO")
+                # ! 匹配原理：忽略冒号两侧的空白符，并捕获其后内容
+                head_match = match(r"INFO\s*:\s*(.*)", actual_line)
+                isnothing(head_match) || push!(objects, (
+                    output_type=NARSOutputType.INFO,
+                    content=head_match[1],
+                    # output_operation=[]
+                    ))#
+            # * 操作截取：匹配"EXE"开头的行 样例：`EXE   :<(*, x)-->^left> = $0.016;0.225;0.562$ <(*, x)-->^left>! %1.000;0.125% {None: 3, 1, 2}`
+            elseif startswith(actual_line, "EXE")
+                # ! 匹配原理：忽略冒号两侧的空白符，捕获「 = $」前、模式为「<(*, 【操作参数】)-->【操作符】>」的字符串
+                operation_match::Union{RegexMatch,Nothing} = match(
+                    r"EXE\s*:\s*<\(\*, (.*)\)-->(\^\w+)> = \$.*",
+                    actual_line
+                )
+                #=
+                样例：
+                ```
+                julia> match(r"EXE\s*:\s*<\(\*, (.*)\)-->(\^\w+)> = \$.*", raw"EXE   :<(*, 1, 2, 3)-->^left> = $0.000;0.225;0.905$ <(*, 1, 2, 3)-->^left>! %1.000;0.287% {None: 2, 1, 0}")
+                RegexMatch("EXE   :<(*, 1, 2, 3)-->^left> = \$0.000;0.225;0.905\$ <(*, 1, 2, 3)-->^left>! %1.000;0.287% {None: 2, 1, 0}", 1="1, 2, 3", 2="^left")
+                ```
+                其中：
+                * operation_match[1] = "1, 2, 3" # 以「根部逗号&空格」分隔的操作参数
+                * operation_match[2] = "^left" # 带星号操作符
+                =#
+                isnothing(operation_match) || push!(objects, (
+                    # `interface_name`交给外部调用者包装
+                    output_type=NARSOutputType.EXE, # !【2023-11-05 03:07:07】检验正常
+                    content=actual_line, # ! 直接返回整一行（处理后）
+                    output_operation=[
+                        match_operation[2],
+                        # 样例：`1, 2, 3` # !【2023-11-05 02:50:32】截止至目前，没经过测试
+                        split_between_root_brackets(match_operation[1], ", ")...
+                    ]
+                )) #
+            # * 默认文本处理 样例：`0.70  0.25  0.60 OUT   :<B==><(*, x)-->^left>>. %1.000;0.200%`
+            else
+                # ↓只需匹配字符串中间的部分，直接跳过开头的运算值
+                head_match = match(r"(\w+)\s*:\s*(.*)$", actual_line) # 匹配后样例：RegexMatch(..., 1="OUT", 2="<<(*, x)-->^left>==>B>. %1.000;0.250%")
+                # ! ↓因为匹配字典中的输出与「PyNARS输出类型」高度重合，故直接过滤之
+                isnothing(head_match) || (head_match[1] ∈ keys(translate_dict_PyNARS) && push!(objects, (
+                    output_type=typeTranslate_PyNARS(head_match[1]),
+                    content=head_match[2],
+                    # output_operation=[] #! 空数组⇒无操作
+                )))
+            end
+            # * fallback：返回空
+            return objects
+        end,
+
+        #= NAIR指令转译
+        - # * 直接调用相应「NAVM后端」转译
+        - # * 相应「NAVM后端」将一次性负责所有的「指令翻译」如
+            - # * `NSE`⇒CommonNarsese文本输入」
+            - # * `CYC`⇒CIN周期递进」
+        =#
+        NAIR_interpreter=(cmd::NAIR_CMD) -> transform(instance_BE_PyNARS, cmd)
     ),
 )

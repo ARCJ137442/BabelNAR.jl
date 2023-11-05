@@ -34,18 +34,25 @@ function get_valid_NARS_type_from_input(
     while true
         inp = input(input_prompt)
         # 输入后空值合并
-        type = isempty(inp) ? (default_type) :
-               CINType(inp)
+        "输入的字符串"
+        local type_str = string(
+            isempty(inp) ? (default_type) :
+            CINType(inp)
+        )
+        "用于对比的字符串" # ! 全部转换成小写字母（忽略大小写）
+        local type_str_comp = lowercase(type_str)
+        local type2_comp::String
         # * 合法⇒返回
         for type2 in valid_types
+            type2_str_comp = lowercase(string(type2))
             # * 条件优先级：相等⇒前缀⇒后缀
-            (type === type2 || # 相等
-             startswith(string(type2), string(type)) ||# 前缀也算合法
-             endswith(string(type2), string(type))
-            ) && return type2
+            (type_str_comp === type2_str_comp || # 相等
+             startswith(type2_str_comp, type_str_comp) ||# 前缀也算合法
+             endswith(type2_str_comp, type_str_comp)
+            ) && return type2 # 最后返回的还是「类型」而非「对比用的字符串」
         end
         # * 非法⇒警告⇒重试
-        printstyled("Invalid Type $(type)!\n"; color=:red)
+        printstyled("Invalid Type $(type_str)!\n"; color=:red)
     end
 
     # ! 永远不会运行到这里
@@ -61,6 +68,7 @@ begin # * 可执行文件路径
         TYPE_ONA => "NAR.exe" |> JER
         TYPE_NARS_PYTHON => "main.exe" |> JER
         TYPE_OPEN_JUNARS => raw"..\..\..\..\OpenJunars-main"
+        TYPE_PYNARS => raw"launch_console_plus.cmd" |> JER
     ])
 end
 

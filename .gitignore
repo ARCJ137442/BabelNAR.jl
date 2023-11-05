@@ -21,3 +21,6 @@ executables/
 
 # 无关压缩文件
 *.zip
+
+# 测试用文件
+*.test.*
