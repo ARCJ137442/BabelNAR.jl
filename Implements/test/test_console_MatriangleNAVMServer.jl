@@ -14,14 +14,21 @@ function main_address(
     default_host::String="127.0.0.1",
     default_port::Int=8765
 )::NamedTuple{(:host, :port),Tuple{String,Int}}
-    # 获取默认值
 
+    # 获取默认值
     host = default_host
     @info "主机地址：$host"
 
     if isnothing(port)
         port = tryparse(Int, input("Port ($default_port): "))
         port = isnothing(port) ? default_port : port
+    end
+
+    # 决定「是否输出详细信息」
+    if !isempty(input("Detailed output (false)："))
+        # * 启用DEBUG模式
+        @debug "启用DEBUG模式！"
+        ENV["JULIA_DEBUG"] = "all"
     end
 
     # 返回

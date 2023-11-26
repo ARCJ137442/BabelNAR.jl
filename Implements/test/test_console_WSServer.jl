@@ -106,6 +106,31 @@ end
     return objects
 end)
 
+"""
+用于高亮「输出颜色」的字典
+"""
+const output_color_dict = Dict([
+    NARSOutputType.IN => :white
+    NARSOutputType.OUT => :white
+    NARSOutputType.EXE => :light_cyan
+    NARSOutputType.ANTICIPATE => :yellow
+    NARSOutputType.ANSWER => :light_yellow
+    NARSOutputType.ACHIEVED => :light_yellow
+    NARSOutputType.INFO => :light_black
+    NARSOutputType.COMMENT => :light_black
+    NARSOutputType.ERROR => :light_red
+    # ! ↓这俩是OpenNARS附加的
+    "CONFIRM" => :light_blue
+    "DISAPPOINT" => :magenta
+])
+
+"""
+用于分派「颜色反转」的集合
+"""
+const output_reverse_color_dict = Set([
+    NARSOutputType.EXE
+])
+
 "覆盖：生成「带Websocket服务器」的NARS终端"
 function main_console(type::CINType, path, CIN_configs)::NARSConsoleWithServer
     # 先定义一个临时函数，将其引用添加进服务器定义——然后添加「正式使用」的方法
@@ -128,12 +153,27 @@ function main_console(type::CINType, path, CIN_configs)::NARSConsoleWithServer
         # 启动服务器
         server_launcher=launchWSServer,
         # 转译输出
-        output_interpreter=(line::String) -> main_output_interpret(Val(Symbol(type)), CIN_configs[type], line),
+        output_interpreter=(line::String) -> main_output_interpret(Val(Symbol(type)), CIN_configs[type], line)
+        #= # !【2023-11-26 14:03:23】下面这段注释原先用于「统一的CIN输出」，但因「程序自身输出无法拦截屏蔽」而作罢
+        begin
+            local outputs::Vector{NamedTuple} = main_output_interpret(Val(Symbol(type)), CIN_configs[type], line)
+            for output in outputs
+                println("[$(output.output_type)] $(output.content)")
+            end
+            return outputs
+        end =#,
         # 发送数据
-        server_send=(consoleWS::NARSConsoleWithServer, data::Vector{NamedTuple}) -> begin
+        server_send=(consoleWS::NARSConsoleWithServer, datas::Vector{NamedTuple}) -> begin
             # 只用封装一次JSON
-            local text::String = json(data)
-            @info "Message Sent" text
+            local text::String = json(datas)
+            for data in datas
+                printstyled(
+                    "[$(data.output_type)] $(data.content)\n";
+                    color=get(output_color_dict, data.output_type, :default),
+                    reverse=data.output_type in output_reverse_color_dict,
+                    bold=true # 所有都加粗，以便和「程序自身输出」对比
+                    )
+            end
             # * 遍历所有连接，广播之
             for connection in consoleWS.connections
                 send(connection, text)

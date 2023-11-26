@@ -20,7 +20,7 @@ function NAIR_interpret(consoleWS::NARSConsoleWithServer, message::String)::Vect
             # * local cmd = 
             parse_cmd(message)
         )
-        @info "NAIR CMD interpretation success：" inputs
+        @debug "NAIR CMD interpretation success：" inputs
         return inputs
     catch err # * 解析错误⇒返回空
         @error "NAIR CMD parse error：" err

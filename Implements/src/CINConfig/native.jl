@@ -168,7 +168,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
         =#
         output_interpret=(line::String) -> begin
 
-            @info "Output Interpret @ OpenNARS" line
+            @debug "Output Interpret @ OpenNARS" line
 
             local objects::Vector{NamedTuple} = NamedTuple[]
             local match_type = match(r"^(\w+): ", line) # EXE: XXXX # ! 只截取「开头纯英文，末尾为『: 』」的内容，并提取其中的「纯英文」
@@ -177,7 +177,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             if isnothing(match_type) #
             else
                 # 统一获取输出内容
-                local content = line[length(match_type[1])+1:end] # 翻译成统一的「NARS输出类型」
+                local content = line[length(match_type[1])+3:end] # 翻译成统一的「NARS输出类型」 # !【2023-11-26 14:05:28】现在屏蔽掉冒号
                 local output_type = typeTranslate_OpenNARS(match_type[1])
 
                 # * 操作截取：匹配「EXE: 」开头的行 # 例句：EXE: $1.00;0.99;1.00$ ^right([{SELF}, x])=null
@@ -257,7 +257,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
         =#
         output_interpret=(line::String) -> begin
 
-            @info "Output Interpret @ ONA" line
+            @debug "Output Interpret @ ONA" line
 
             local objects::Vector{NamedTuple} = NamedTuple[]
 
@@ -345,7 +345,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
             # TODO：找到NARS Python中「带参操作」的例句
         =#
         output_interpret=(line::String) -> begin
-            @info "Output Interpret @ NARS Python" line
+            @debug "Output Interpret @ NARS Python" line
 
             local objects::Vector{NamedTuple} = NamedTuple[]
 
@@ -446,7 +446,7 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
 
         =#
         output_interpret=(line::String) -> begin
-            @info "Output Interpret @ PyNARS" line
+            @debug "Output Interpret @ PyNARS" line
 
             local objects::Vector{NamedTuple} = NamedTuple[]
 

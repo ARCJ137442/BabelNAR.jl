@@ -108,8 +108,8 @@ end
 - 自动发送到服务器
 """
 function on_console_out(consoleWS::NARSConsoleWithServer, line::String)
-    # 打印输出
-    consoleWS.console.launched && println(line)
+    # 打印输出 # ! 这里的输出不是「程序本身的输出」，删除它也无法拦截程序自身的输出
+    # consoleWS.console.launched && println(line)
 
     # 解析⇒发送到客户端 #
     isnothing(consoleWS.server) || begin
