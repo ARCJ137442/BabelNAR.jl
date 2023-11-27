@@ -66,6 +66,7 @@ const translate_dict_OpenNARS = Dict([
     "ANTICIPATE" => NARSOutputType.ANTICIPATE,
     # ! OpenNARS特有
     "CONFIRM" => "CONFIRM",
+    "DISAPPOINT" => "DISAPPOINT"
 ])
 const translate_dict_ONA = Dict([
     "Input" => NARSOutputType.IN,
