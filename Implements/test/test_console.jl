@@ -120,7 +120,7 @@ end)
     local console = main_console(type, path, NATIVE_CIN_CONFIGS) # ! 类型无需固定
 
     # 启动NARS终端
-    not_VSCode_running && @show console # VSCode（CodeRunner）运行⇒打印
+    not_VSCode_running && @debug console # VSCode（CodeRunner）运行⇒打印
     main_launch(console) # 无论如何都会启动 # * 用于应对「在VSCode启动服务器相对不需要用户输入」的情况
 end
 

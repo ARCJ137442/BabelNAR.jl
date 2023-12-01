@@ -285,7 +285,6 @@ const NATIVE_CIN_CONFIGS::CINConfigDict = CINConfigDict( # * Julia的「类型�
                         # 样例：`{SELF} * x` # *【2023-11-05 02:51:15】测试成功
                         split_between_root_brackets(match_operation[2], " *") # 必须把「*」也视作分隔符（根部）
                     )
-                    @show match_args
                     push!(objects, (
                         output_type=NARSOutputType.EXE,
                         content=line, # 暂无特殊截取

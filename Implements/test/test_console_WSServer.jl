@@ -15,7 +15,8 @@ function launchWSServer(consoleWS::NARSConsoleWithServer, host::String, port::In
     listen(consoleWS.server, :client) do ws
 
         # Julia自带侦听提示
-        @info "Websocket connection established with ws=$ws"
+        @info "Websocket connection established."
+        @debug "ws=$ws"
         push!(consoleWS.connections, ws)
 
         listen(ws, :message) do message
