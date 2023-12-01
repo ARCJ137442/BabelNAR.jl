@@ -114,8 +114,8 @@ const output_color_dict = Dict([
     NARSOutputType.OUT => :white
     NARSOutputType.EXE => :light_cyan
     NARSOutputType.ANTICIPATE => :yellow
-    NARSOutputType.ANSWER => :light_yellow
-    NARSOutputType.ACHIEVED => :light_yellow
+    NARSOutputType.ANSWER => :light_green
+    NARSOutputType.ACHIEVED => :light_green
     NARSOutputType.INFO => :light_black
     NARSOutputType.COMMENT => :light_black
     NARSOutputType.ERROR => :light_red
@@ -129,6 +129,8 @@ const output_color_dict = Dict([
 """
 const output_reverse_color_dict = Set([
     NARSOutputType.EXE
+    # NARSOutputType.ANSWER
+    # NARSOutputType.ACHIEVED
 ])
 
 "覆盖：生成「带Websocket服务器」的NARS终端"

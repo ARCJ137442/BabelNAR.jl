@@ -64,9 +64,10 @@ const translate_dict_OpenNARS = Dict([
     "OUT" => NARSOutputType.OUT,
     "EXE" => NARSOutputType.EXE,
     "ANTICIPATE" => NARSOutputType.ANTICIPATE,
+    "Answer" => NARSOutputType.ANSWER, # * OpenNARS中的「Answer」是小写的
     # ! OpenNARS特有
     "CONFIRM" => "CONFIRM",
-    "DISAPPOINT" => "DISAPPOINT"
+    "DISAPPOINT" => "DISAPPOINT",
 ])
 const translate_dict_ONA = Dict([
     "Input" => NARSOutputType.IN,
