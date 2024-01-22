@@ -57,51 +57,6 @@ using Pkg
 Pkg.add(url="https://github.com/ARCJ137442/BabelNAR.jl")
 ```
 
-## 快速开始
-
-### 可执行文件
-
-运行CIN所需的所有**可执行文件**（需要用到的`.jar`、`.exe`等），都需放在与`src`同级的`executables`目录；
-
-这个路径也可通过通过配置`test_console.jl`中的`paths`变量：
-
-```julia
-paths::Dict = Dict([
-    "OpenNARS" => "opennars.jar" |> JER
-    "ONA" => "NAR.exe" |> JER
-    "Python" => "main.exe" |> JER
-    "Junars" => raw"..\..\..\..\OpenJunars-main"
-])
-```
-
-格式：
-
-```julia
-"【CIN类名】" => "【文件名】"
-```
-
-### 依赖路径问题
-
-介于开发效率方面的需求，本Julia包如 [NAVM](https://github.com/ARCJ137442/NAVM.jl) 一样
-
-### 快速启动
-
-在有Julia环境的电脑上，可尝试运行源码中的`Implements/test/test_console.jl`：
-
-```bash
-cd BabelNAR
-julia Implements/test/test_console.jl
-```
-
-或运行`Implements/test/test_console_WSServer.jl`
-
-- 需要Julia环境安装有 **SimpleWebsockets** 、 **JSON** 包
-
-```bash
-cd BabelNAR
-julia Implements/test/test_console_WSServer.jl
-```
-
 ## 代码规范 Notes
 
 ### 文件头部注释
