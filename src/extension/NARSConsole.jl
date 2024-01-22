@@ -77,17 +77,20 @@ end
 """
 on_console_out(console::NARSConsole, line::String) = console.launched && println(line)
 
-"启动终端"
-function launch!(console::NARSConsole)
+"启动控制台"
+function launch!(console::NARSConsole; console!_kwargs...)
     launch!(console.program) # 启动CIN程序
-    console!(console)
+    console!(console; console!_kwargs...) # 启动控制台循环
 end
 
-"开始终端循环"
-function console!(console::NARSConsole)
+"""
+开始控制台循环
+- @param delay_between_input 每两次输入之间的等待时间（秒）
+"""
+function console!(console::NARSConsole; delay_between_input::Real=0, kwargs...)
     while true
         console.launched = true
-        # 最后输入CIN
+        # 检测输入并注入CIN
         put!(
             console.program,
             # 再转译
@@ -96,8 +99,10 @@ function console!(console::NARSConsole)
                 input(console.input_prompt)
             )
         )
+        # 等待指定秒数
+        delay_between_input > 0 && sleep(delay_between_input)
     end
 end
 
-"终止终端 = 终止CIN"
+"终止控制台 = 终止CIN"
 terminate!(console::NARSConsole) = terminate!(console.program)

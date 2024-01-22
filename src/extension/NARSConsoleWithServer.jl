@@ -121,14 +121,15 @@ function on_console_out(consoleWS::NARSConsoleWithServer, line::String)
 end
 
 """
-（从指定主机和端口）启动终端
+（从指定主机和端口）启动控制台
 - 启动服务器
-- 自动进入终端循环
+- 自动进入控制台循环
 """
 function launch!(
     consoleWS::NARSConsoleWithServer;
     host::AbstractString,
-    port::Int
+    port::Int,
+    console!_kwargs...
 )
     # 启动内部CIN程序
     launch!(consoleWS.console.program)
@@ -136,9 +137,9 @@ function launch!(
     # 调用「服务器启动函数」
     consoleWS.server_launcher(consoleWS, host, port)
 
-    # 内部控制台进入终端循环
-    console!(consoleWS.console)
+    # 内部控制台进入循环
+    console!(consoleWS.console; console!_kwargs...)
 end
 
-"终止终端" # ?【2023-11-02 20:22:34】后续是否要支持服务器终止
+"终止控制台" # ?【2023-11-02 20:22:34】后续是否要支持服务器终止
 terminate!(consoleWS::NARSConsoleWithServer) = terminate!(consoleWS.console)
