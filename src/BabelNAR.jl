@@ -26,7 +26,7 @@ include("extension/extension.jl")
 
 "测试用的「主函数」"
 function main()
-    @info "The Main Function of BabelNAR" names(Utils) names(CIN) names(implements) names(extension)
+    @info "The Main Function of BabelNAR" names(Utils) names(CIN) names(extension)
     @info "It is done." names(BabelNAR)
 end
 

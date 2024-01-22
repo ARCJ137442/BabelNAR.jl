@@ -1,7 +1,9 @@
 name = "BabelNAR"
 uuid = "b7421120-50f0-43fc-8b2b-7721c3d5cbfc"
 authors = ["ARCJ137442 <61109168+ARCJ137442@users.noreply.github.com>"]
-version = "0.2.1"
+version = "0.2.2"
 
 [deps]
+JuNarsese = "11330a76-bea1-45e0-8f80-7114e2f607b1"
+NAVM = "2245f648-40fa-438d-8bb4-5b93bf8a933b"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
