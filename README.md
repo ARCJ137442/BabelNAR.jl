@@ -23,27 +23,7 @@
 
 ### ***CommonNarsese***
 
-- 由[Narsese Grammar (IO Format)](https://github.com/opennars/opennars/wiki/Narsese-Grammar-(Input-Output-Format))定义，
-- 在各类NARS(Narsese)实现中，
-- 最先产生规范，并最为广泛接受的一种语法
-
-与其它方言、超集的不同点举例：
-
-- 原子词项：
-  - 一律使用`$`、`#`、`?`、`^`区分「独立变量」「非独变量」「查询变量」「操作」
-  - 一律使用单独的`_`表示「像占位符」
-- 复合词项：
-  - 一律使用特殊括弧`{词项...}`、`[词项...]`表示「外延集」「内涵集」
-  - 一律使用「圆括号+前缀表达式」`(连接符, 词项...)`形式表示「非外延集、内涵集的复合词项」
-    - 如`(&, <A --> B>, ^op)`
-    - 对「否定」不使用前缀表达式
-    - 对其它「二元复合词项」不使用中缀表达式
-- 陈述：
-  - 一律使用尖括号表示陈述，没有其他选项
-    - 如`<A --> B>`
-  - 不使用「回顾性等价」`<\>`系词
-    - 一律用表义能力等同的「预测性等价」`</>`系词代替
-    - 如`<A <\> B>`将表示为`<B </> A>`
+🔗参考[**NAVM.jl**的对应部分](https://github.com/ARCJ137442/navm.jl?tab=readme-ov-file#commonnarsese)
 
 ## 安装
 
@@ -56,6 +36,10 @@
 using Pkg
 Pkg.add(url="https://github.com/ARCJ137442/BabelNAR.jl")
 ```
+
+## 使用
+
+🔗参考[BabelNAR_Implements](https://github.com/ARCJ137442/BabelNAR_Implements)的具体实现
 
 ## 代码规范 Notes
 
@@ -91,12 +75,8 @@ export inputType
 
 ## 参考
 
-### CIN
+### 依赖
 
-- [OpenNARS (Java)](https://github.com/opennars/opennars)
-- [ONA (C)](https://github.com/opennars/OpenNARS-for-Applications)
-- [NARS-Python (Python)](https://github.com/ccrock4t/NARS-Python)
-- [OpenJunars (Julia)](https://github.com/AIxer/OpenJunars)
-<!-- - [PyNARS (Python)](https://github.com/bowen-xu/PyNARS)
-- [Narjure (Clojure)](https://github.com/opennars/Narjure)
-- [NARS-Swift (Swift)](https://github.com/maxeeem/NARS-Swift) -->
+- [JuNarsese](https://github.com/ARCJ137442/JuNarsese.jl)
+- [NAVM](https://github.com/ARCJ137442/NAVM.jl)
+- [BabelNAR](https://github.com/ARCJ137442/BabelNAR.jl)
